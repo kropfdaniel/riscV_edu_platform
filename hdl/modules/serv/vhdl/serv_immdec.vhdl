@@ -14,7 +14,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity serv_o_immdec is
+entity serv_immdec is
     generic(
         SHARED_RFADDR_IMM_REGS : boolean := true;
         W : integer := 1
@@ -36,12 +36,11 @@ entity serv_o_immdec is
         o_imm           : out  std_logic_vector(W - 1 downto 0);
         -- External
         i_wb_en         : in  std_logic;
-        i_wb_rdt        : in  std_logic_vector(37 downto 7)
-
+        i_wb_rdt        : in  std_logic_vector(31 downto 7)
     );
-end entity serv_o_immdec;
+end entity serv_immdec;
 
-architecture rtl of serv_o_immdec is
+architecture rtl of serv_immdec is
 
     
 begin
