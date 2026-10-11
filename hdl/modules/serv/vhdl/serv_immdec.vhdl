@@ -1,0 +1,8 @@
+----------------------------------------------------------------------------------
+-- File: serv_immdec.vhdl
+-- Author: Daniel Kropf
+-- License: MIT License
+-- 
+-- Description: VHDL port of the SERV RISC-V CPU.
+-- Original Verilog architecture by Olof Kindgren (ISC License).
+----------------------------------------------------------------------------------
