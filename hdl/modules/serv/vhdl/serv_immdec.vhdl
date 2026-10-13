@@ -1,5 +1,5 @@
 ----------------------------------------------------------------------------------
--- File: serv_o_immdec.vhdl
+-- File: serv_immdec.vhdl
 -- Author: Daniel Kropf
 -- License: MIT License
 -- 
