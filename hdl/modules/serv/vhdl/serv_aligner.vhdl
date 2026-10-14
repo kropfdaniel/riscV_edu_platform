@@ -6,7 +6,7 @@
 -- Description: Realign a misaligned 32-bit word fetched from memory
 -- Note:        This file is a VHDL translation of the original Verilog module.
 --              Original architecture and Verilog implementation by:
---              Copyright (c) 2020 Olof Kindgren
+--              Copyright (c) 2022 Olof Kindgren
 --              Original License: ISC
 ----------------------------------------------------------------------------------
 

@@ -6,8 +6,8 @@
 -- Description: Decodes RISC-V compressed instructions into their RV32i equivalent
 -- Note:        This file is a VHDL translation of the original Verilog module.
 --              Original architecture and Verilog implementation by:
---              Copyright (c) 2020 Olof Kindgren
---              Original License: ISC
+--              Copyright (c) 2018 ETH Zurich and University of Bologna
+--              Original License: Apache-2.0
 ----------------------------------------------------------------------------------
 
 library ieee;
