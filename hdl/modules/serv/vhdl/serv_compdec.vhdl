@@ -51,6 +51,21 @@ begin
         -- By default, forward incoming instruction, mark it as legal.
         comp_instr <= i_instr;
         illegal_instr <= '0';
+
+        case i_instr(1 downto 0) is 
+            -- C0
+            when "00" =>
+                case i_instr(15 downto 14) is 
+                    when "00" =>
+                        -- c.addi4spn -> addi rd', x2, imm
+                        comp_instr <= "00" & i_instr(10 downto 7) & i_instr(12 downto 11) &
+                                      i_instr(5) & i_instr(6) & "00" & 5x"02" & "000" & "01" &
+                                      i_instr(4 downto 2) & OPCODE_LOAD;
+                    when "01" =>
+                        -- c.lw -> lw rd', imm(rs1')
+                        comp_instr <= "";
+                end case;
+        end case;
     end process;
 
 
