@@ -46,7 +46,7 @@ architecture rtl of serv_immdec is
 begin
 
     assert (W = 1 or W = 4)
-        report "PARAMETER ERROR: W must be exactly 1 or 4."
+        report "serv_immdec PARAMETER ERROR: W must be exactly 1 or 4."
         severity failure;
 
     

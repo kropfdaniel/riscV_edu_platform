@@ -50,7 +50,7 @@ begin
     rs1_sx  <= i_rs1(B)  and i_cmp_sig;
     op_b_sx <= i_op_b(B) and i_cmp_sig;
 
-    add_b <= i_op_b xor (W-1 downto 0 => i_sub);
+    add_b <= i_op_b xor (B downto 0 => i_sub);
 
     add_full <= std_logic_vector( unsigned('0' & i_rs1) + 
                                   unsigned('0' & add_b) + 
@@ -74,8 +74,8 @@ begin
     -- 
     -- i_bool_op will be 01 during shift operations, so by outputting zero under
     -- this condition we can safely or result_bool with i_buf
-    result_bool <= ((i_rs1 xor i_op_b) and not(W-1 downto 0 => i_bool_op(0))) or 
-                   ((W-1 downto 0 => i_bool_op(1)) and i_op_b and i_rs1);
+    result_bool <= ((i_rs1 xor i_op_b) and not(B downto 0 => i_bool_op(0))) or 
+                   ((B downto 0 => i_bool_op(1)) and i_op_b and i_rs1);
     
     result_slt(0) <= cmp_r and i_cnt0;
 
@@ -84,14 +84,14 @@ begin
     end generate gen_w_gt_1;
 
     o_rd <= i_buf or 
-            ((W-1 downto 0 => i_rd_sel(0)) and result_add) or 
-            ((W-1 downto 0 => i_rd_sel(1)) and result_slt) or 
-            ((W-1 downto 0 => i_rd_sel(2)) and result_bool);
+            ((B downto 0 => i_rd_sel(0)) and result_add) or 
+            ((B downto 0 => i_rd_sel(1)) and result_slt) or 
+            ((B downto 0 => i_rd_sel(2)) and result_bool);
 
     process(clk)
     begin
         if rising_edge(clk) then
-            add_cy_r    <= (W-1 downto 0 => '0');
+            add_cy_r    <= (B downto 0 => '0');
             add_cy_r(0) <= add_cy when i_en = '1' else i_sub;
             
             if i_en = '1' then
