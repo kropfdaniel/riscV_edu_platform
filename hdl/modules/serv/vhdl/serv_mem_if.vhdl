@@ -79,4 +79,6 @@ begin
     -- mem_misalign is checked after the init stage to decide whether to do a data
     -- bus transaction or go to the trap state. It is only guaranteed to be correct
     -- at this time
+    o_misalign <= ((i_lsb(0) and (i_word or i_half)) or (i_lsb(1) and i_word)) when WITH_CSR 
+                  else '0';
 end architecture rtl;
