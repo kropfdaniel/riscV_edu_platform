@@ -17,8 +17,8 @@ use ieee.numeric_std.all;
 entity serv_csr is
     generic(
         RESET_STRATEGY : string := "MINI";
-        W   : integer := 1;
-        B   : integer := W-1
+        W              : integer := 1;
+        B              : integer := W-1
     );
     port(
         i_clk               : in  std_logic;
