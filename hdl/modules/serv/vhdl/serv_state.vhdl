@@ -1,5 +1,5 @@
 ----------------------------------------------------------------------------------
--- File: serv_mstate.vhdl
+-- File: serv_state.vhdl
 -- Author: Daniel Kropf
 -- License: MIT License
 -- 
