@@ -17,24 +17,24 @@ use work.serv_pkg.all;
 
 entity serv_rf_ram is
     generic(
-        width          : integer := 0;
-        csr_regs       : integer := 4;
-        depth          : integer := 32*(32+csr_regs)/width
+        WIDTH          : integer := 0;
+        CSR_REGS       : integer := 4;
+        DEPTH          : integer := 32*(32+CSR_REGS)/WIDTH
     );
     port(
         i_clk               : in  std_logic;
-        i_waddr             : in  std_logic_vector(clog2(depth)-1 downto 0);
-        i_wdata             : in  std_logic_vector(width-1 downto 0);
+        i_waddr             : in  std_logic_vector(clog2(DEPTH)-1 downto 0);
+        i_wdata             : in  std_logic_vector(WIDTH-1 downto 0);
         i_wen               : in  std_logic;
-        i_raddr             : in  std_logic_vector(clog2(depth)-1 downto 0);
+        i_raddr             : in  std_logic_vector(clog2(DEPTH)-1 downto 0);
         i_ren               : in  std_logic;
-        o_rdata             : out std_logic_vector(width-1 downto 0)
+        o_rdata             : out std_logic_vector(WIDTH-1 downto 0)
     );
 end entity serv_rf_ram;
 
 architecture rtl of serv_rf_ram is
-    signal memory  : std_logic_array_t(0 to depth-1)(width-1 downto 0) := (others => (others => '0'));
-    signal rdata   : std_logic_vector(width-1 downto 0);
+    signal memory  : std_logic_array_t(0 to DEPTH-1)(WIDTH-1 downto 0) := (others => (others => '0'));
+    signal rdata   : std_logic_vector(WIDTH-1 downto 0);
     signal regzero : std_logic;
 begin
     process(i_clk)
@@ -51,15 +51,15 @@ begin
             -- Reads from reg x0 needs to return 0
             -- Check that the part of the read address corresponding to the register
             -- is zero and gate the output
-            -- width LSB of reg index clog2(width)
+            -- WIDTH LSB of reg index clog2(WIDTH)
             -- 2     4                1
             -- 4     3                2
             -- 8     2                3
             -- 16    1                4
             -- 32    0                5
-            regzero <= nor i_raddr(clog2(depth)-1 downto 5-clog2(width));
+            regzero <= nor i_raddr(clog2(DEPTH)-1 downto 5-clog2(WIDTH));
         end if;
     end process;
 
-    o_rdata <= rdata and not(width-1 downto 0 => regzero);
+    o_rdata <= rdata and not(WIDTH-1 downto 0 => regzero);
 end architecture rtl;
