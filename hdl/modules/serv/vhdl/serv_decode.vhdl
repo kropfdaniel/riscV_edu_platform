@@ -43,7 +43,9 @@ entity serv_decode is
         o_bufreg_rs1_en     : out std_logic;
         o_bufreg_imm_en     : out std_logic;
         o_bufreg_clr_lsb    : out std_logic;   
-        o_bufreg_sh_signed  : out std_logic;   
+        o_bufreg_sh_signed  : out std_logic; 
+        -- To bufreg2
+        o_op_b_source       : out std_logic;  
         -- To ctrl
         o_ctrl_jal_or_jalr  : out std_logic;
         o_ctrl_utype        : out std_logic;
@@ -73,7 +75,6 @@ entity serv_decode is
         -- To top
         o_immdec_ctrl       : out std_logic_vector(3 downto 0);
         o_immdec_en         : out std_logic_vector(3 downto 0);
-        o_op_b_source       : out std_logic;
         -- TO RF IF
         o_rd_mem_en         : out std_logic;
         o_rd_csr_en         : out std_logic;

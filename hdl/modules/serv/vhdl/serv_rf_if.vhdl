@@ -43,11 +43,10 @@ entity serv_rf_if is
         i_bufreg_q          : in  std_logic_vector(B downto 0);
         i_bad_pc            : in  std_logic_vector(B downto 0);
         o_csr_pc            : out std_logic_vector(B downto 0);
-        -- CSR interface
+        -- CSR write port
         i_csr_en            : in  std_logic;
         i_csr_addr          : in  std_logic_vector(1 downto 0);
         i_csr               : in  std_logic_vector(B downto 0);
-        o_csr               : out std_logic_vector(B downto 0);
         -- RD write port
         i_rd_wen            : in  std_logic;
         i_rd_waddr          : in  std_logic_vector(4 downto 0);
@@ -59,11 +58,13 @@ entity serv_rf_if is
         i_mem_rd            : in  std_logic_vector(B downto 0);
         i_rd_mem_en         : in  std_logic;
         -- RS1 read port
-        i_rs1_raddr          : in  std_logic_vector(4 downto 0);
+        i_rs1_raddr         : in  std_logic_vector(4 downto 0);
         o_rs1               : out std_logic_vector(B downto 0);
         -- RS2 read port
-        i_rs2_raddr          : in  std_logic_vector(4 downto 0);
-        o_rs2               : out std_logic_vector(B downto 0)
+        i_rs2_raddr         : in  std_logic_vector(4 downto 0);
+        o_rs2               : out std_logic_vector(B downto 0);
+        -- CSR read port
+        o_csr               : out std_logic_vector(B downto 0)
     );
 end entity serv_rf_if;
 
