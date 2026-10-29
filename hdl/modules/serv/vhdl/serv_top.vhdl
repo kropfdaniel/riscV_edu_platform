@@ -7,6 +7,8 @@
 --              Original architecture and Verilog implementation by:
 --              Copyright (c) 2018 Olof Kindgren
 --              Original License: ISC
+-- Changes compared to original serv_top.v:
+-- - debug generic is not supported (generic is still there for equiv check, but must be set to false)
 ----------------------------------------------------------------------------------
 
 library ieee;
@@ -23,7 +25,7 @@ entity serv_top is
         PRE_REGISTER        : boolean := true;
         RESET_STRATEGY      : string := "MINI";
         RESET_PC            : std_logic_vector(31 downto 0) := 32D"0";
-        DEBUG               : boolean := false;
+        DEBUG               : boolean := false; -- unsupported. must be set to false
         MDU                 : boolean := false;
         COMPRESSED          : boolean := false;
         ALIGN               : boolean := COMPRESSED;
@@ -33,28 +35,6 @@ entity serv_top is
         clk                 : in  std_logic;
         i_rst               : in  std_logic;
         i_timer_irq         : in  std_logic;
-        -- RISCV_FORMAL
-        -- rvfi_valid          : out std_logic;
-        -- rvfi_order          : out std_logic_vector(63 downto 0);
-        -- rvfi_insn           : out std_logic_vector(31 downto 0);
-        -- rvfi_trap           : out std_logic;     
-        -- rvfi_halt           : out std_logic;     
-        -- rvfi_intr           : out std_logic;     
-        -- rvfi_mode           : out std_logic_vector(1 downto 0);
-        -- rvfi_ixl            : out std_logic_vector(1 downto 0);  
-        -- rvfi_rs1_addr       : out std_logic_vector(4 downto 0);  
-        -- rvfi_rs2_addr       : out std_logic_vector(4 downto 0);  
-        -- rvfi_rs1_rdata      : out std_logic_vector(31 downto 0);
-        -- rvfi_rs2_rdata      : out std_logic_vector(31 downto 0);
-        -- rvfi_rd_addr        : out std_logic_vector(4 downto 0);   
-        -- rvfi_rd_wdata       : out std_logic_vector(31 downto 0);
-        -- rvfi_pc_rdata       : out std_logic_vector(31 downto 0);
-        -- rvfi_pc_wdata       : out std_logic_vector(31 downto 0);
-        -- rvfi_mem_addr       : out std_logic_vector(31 downto 0);
-        -- rvfi_mem_rmask      : out std_logic_vector(3 downto 0); 
-        -- rvfi_mem_wmask      : out std_logic_vector(3 downto 0); 
-        -- rvfi_mem_rdata      : out std_logic_vector(31 downto 0);
-        -- rvfi_mem_wdata      : out std_logic_vector(31 downto 0);
         -- RF Interface
         o_rf_rreq           : out std_logic;     
         o_rf_wreq           : out std_logic;     
@@ -111,6 +91,10 @@ architecture rtl of serv_top is
     signal alu_bool_op, mem_bytecnt, csr_source, csr_addr, lsb : std_logic_vector(1 downto 0);
     signal alu_rd_sel : std_logic_vector(2 downto 0);
 begin
+    assert (DEBUG = false)
+        report "serv_top PARAMETER ERROR: Debug is not supported. Must be set to false"
+        severity failure;
+
     gen_align : if ALIGN generate
         aligner : entity work.serv_aligner(rtl)
         port map ( clk           => clk,
@@ -494,11 +478,6 @@ begin
         csr_rd <= (others => '0');
         new_irq <= '0';
     end generate gen_csr;
-
-    gen_debug : if DEBUG generate
-        -- TODO add debug
-
-    end generate gen_debug;
 
     gen_mdu : if MDU generate
         dbus_rdt <= i_ext_rd when (??i_ext_ready) else i_dbus_rdt;
