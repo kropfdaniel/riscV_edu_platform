@@ -1,6 +1,14 @@
 /*****************************************************************************\
 |                      Copyright (C) 2021-2025 Luke Wren                      |
 |                     SPDX-License-Identifier: Apache-2.0                     |
+|                                                                             |
+|                     Modified 2026 by Theo Kluter                            |
+|                     Changes:                                                |
+|                      - Moved to active-high reset                           |
+|                      - Moved to synchronous reset                           |
+|                      - Added an external reset vector                       |
+|                      - Added an external mtvec_init vector                  |
+|                      - Remove E-extention                                   |
 \*****************************************************************************/
 
 `ifdef HAZARD3_RVFI_STANDALONE
@@ -17,7 +25,10 @@ module hazard3_core #(
 	// Global signals
 	input wire                 clk,
 	input wire                 clk_always_on,
-	input wire                 rst_n,
+	input wire                 rst,
+	
+	input wire [31:0]          reset_vector,
+	input wire [31:0]          mtvec_init,
 
 	// Power control signals
 	output wire                pwrup_req,
@@ -86,7 +97,15 @@ module hazard3_core #(
 	// Level-sensitive interrupt sources
 	input  wire [NUM_IRQS-1:0] irq,       // -> mip.meip
 	input  wire                soft_irq,  // -> mip.msip
-	input  wire                timer_irq  // -> mip.mtip
+	input  wire                timer_irq, // -> mip.mtip
+	
+	// custom-instruction interface (nios II compatible)
+	output reg 	[6:0]		   ci_id,
+	output reg                 ci_start,
+	output reg  [W_DATA-1:0]   ci_dataa,
+	output reg  [W_DATA-1:0]   ci_datab,
+	input  wire                ci_done,
+	input  wire [W_DATA-1:0]   ci_result
 );
 
 `include "hazard3_ops.vh"
@@ -98,8 +117,6 @@ wire m_stall;
 localparam HSIZE_WORD  = 3'd2;
 localparam HSIZE_HWORD = 3'd1;
 localparam HSIZE_BYTE  = 3'd0;
-
-localparam [4:0] REGADDR_MASK = {~|EXTENSION_E, 4'hf};
 
 wire debug_mode;
 assign dbg_halted = DEBUG_SUPPORT && debug_mode;
@@ -169,7 +186,8 @@ hazard3_frontend #(
 `include "hazard3_config_inst.vh"
 ) frontend (
 	.clk                  (clk),
-	.rst_n                (rst_n),
+	.rst                  (rst),
+	.reset_vector         (reset_vector),
 
 	.mem_size             (f_mem_size),
 	.mem_addr             (bus_haddr_i),
@@ -242,7 +260,7 @@ hazard3_frontend #(
 // X-check on pieces of instruction which frontend claims are valid
 `ifdef HAZARD3_X_CHECKS
 always @ (posedge clk) begin
-	if (rst_n) begin
+	if (!rst) begin
 		if (|fd_cir_vld && (^fd_cir[15:0] === 1'bx)) begin
 			$display("CIR LSBs are X, should be valid!");
 			$finish;
@@ -286,6 +304,8 @@ wire [1:0]           d_csr_wtype;
 wire                 d_csr_w_imm;
 wire [W_ADDR-1:0]    d_lspair_offset;
 
+wire                 d_is_ci;
+
 wire                 x_jump_not_except;
 wire                 x_mmode_execution;
 wire                 x_trap_wfi;
@@ -298,7 +318,8 @@ hazard3_decode #(
 `include "hazard3_config_inst.vh"
 ) decode_u (
 	.clk                     (clk),
-	.rst_n                   (rst_n),
+	.rst                     (rst),
+	.reset_vector            (reset_vector),
 
 	.fd_cir                  (fd_cir),
 	.fd_cir_err              (fd_cir_err),
@@ -360,7 +381,9 @@ hazard3_decode #(
 	.d_uninterruptible       (d_uninterruptible),
 	.d_lspair_offset         (d_lspair_offset),
 	.d_fence_i               (d_fence_i),
-	.d_fence_d               (d_fence_d)
+	.d_fence_d               (d_fence_d),
+
+	.d_is_ci                 (d_is_ci)
 );
 
 // ----------------------------------------------------------------------------
@@ -404,6 +427,49 @@ reg                  xm_except_to_d_mode;
 reg                  xm_sleep_wfi;
 reg                  xm_sleep_block;
 reg                  xm_delay_irq_entry_on_ls_stagex;
+
+
+// ----------------------------------------------------------------------------
+// Custom Instruction (supports combinational and multi-cycle custom instructions)
+
+reg  ci_posted;
+wire ci_op_vld  = d_is_ci && !(x_stall_on_raw || ci_posted);
+wire x_stall_ci = d_is_ci && !ci_posted;
+
+always @ (posedge clk)
+    if (rst)
+        ci_posted <= 1'b0;
+    else
+        ci_posted <= (ci_posted || (ci_op_vld && ci_done)) && x_stall;
+
+reg busy;
+assign ci_id     = ci_op_vld ? d_funct7_32b : 0;
+assign ci_dataa  = ci_op_vld ? x_rs1_bypass : 0;
+assign ci_datab  = ci_op_vld ? x_rs2_bypass : 0;
+assign ci_start  = ci_op_vld & ~busy;
+
+reg [31:0] ci_result_latched;
+always @ (posedge clk) begin
+	if (rst) begin
+		ci_result_latched <= 0;
+		busy              <= 0;
+	end	else begin
+
+		// - If the custom instruction is combinational, 'busy' is never
+		// asserted and we directly latch the result in cycle one.
+
+		// - If the custom instruction is multi-cycle, 'busy' gets asserted in
+		// cycle 2 and stays high until the result is produced.
+		// The 'busy' register is used to generate the one-cycle 'ci_start' signal.
+
+		if (ci_done) begin
+			ci_result_latched <= ci_result;
+			busy              <= 1'b0;
+		end else if (ci_op_vld) begin
+			busy              <= 1'b1;
+		end
+	end
+end
 
 // ----------------------------------------------------------------------------
 // Stall logic
@@ -480,6 +546,7 @@ assign x_stall =
 	x_stall_on_raw ||
 	x_stall_on_fence ||
 	x_stall_muldiv ||
+	x_stall_ci ||
 	bus_aph_req_d && !bus_aph_ready_d ||
 	x_jump_req && !f_jump_rdy;
 
@@ -504,22 +571,18 @@ wire x_trig_break_d_mode = fd_cir_break_d_mode;
 reg [W_REGADDR-1:0] d_rs1_predecoded;
 reg [W_REGADDR-1:0] d_rs2_predecoded;
 
-always @ (posedge clk or negedge rst_n) begin
-	if (!rst_n) begin
+always @ (posedge clk) begin
+	if (rst) begin
 		d_rs1_predecoded <= {W_REGADDR{1'b0}};
 		d_rs2_predecoded <= {W_REGADDR{1'b0}};
 	end else if (d_starved || !x_stall) begin
-		d_rs1_predecoded <= f_rs1_fine & REGADDR_MASK;
-		d_rs2_predecoded <= f_rs2_fine & REGADDR_MASK;
+		d_rs1_predecoded <= f_rs1_fine;
+		d_rs2_predecoded <= f_rs2_fine;
 	end
 end
 
-wire [W_REGADDR-1:0] d_rs1_predecoded_nxt = REGADDR_MASK & (
-	d_starved || !x_stall ? f_rs1_fine : d_rs1_predecoded
-);
-wire [W_REGADDR-1:0] d_rs2_predecoded_nxt = REGADDR_MASK & (
-	d_starved || !x_stall ? f_rs2_fine : d_rs2_predecoded
-);
+wire [W_REGADDR-1:0] d_rs1_predecoded_nxt = d_starved || !x_stall ? f_rs1_fine : d_rs1_predecoded;
+wire [W_REGADDR-1:0] d_rs2_predecoded_nxt = d_starved || !x_stall ? f_rs2_fine : d_rs2_predecoded;
 
 wire [W_REGADDR-1:0] xm_rd_nxt;
 wire [W_REGADDR-1:0] mw_rd_nxt;
@@ -527,8 +590,8 @@ wire [W_REGADDR-1:0] mw_rd_nxt;
 reg [2:0] x_rs1_select_regs_xm_mw;
 reg [2:0] x_rs2_select_regs_xm_mw;
 
-always @ (posedge clk or negedge rst_n) begin
-	if (!rst_n) begin
+always @ (posedge clk) begin
+	if (rst) begin
 		x_rs1_select_regs_xm_mw <= 3'b000;
 		x_rs2_select_regs_xm_mw <= 3'b000;
 	end else begin
@@ -544,7 +607,7 @@ always @ (posedge clk or negedge rst_n) begin
 end
 
 `ifdef HAZARD3_ASSERTIONS
-always @ (posedge clk) if (rst_n && !x_stall) begin
+always @ (posedge clk) if (!rst && !x_stall) begin
 	// If stage 2 sees a reg operand, it must have been correctly predecoded too.
 	if (|d_rs1)
 		assert(d_rs1_predecoded == d_rs1);
@@ -636,8 +699,8 @@ assign bus_aph_excl_d = |EXTENSION_A && (
 // AMO stalls the pipe, then generates two bus transfers per 4-cycle
 // iteration, unless it bails out due to a bus fault or failed load
 // reservation.
-always @ (posedge clk or negedge rst_n) begin
-	if (!rst_n) begin
+always @ (posedge clk) begin
+	if (rst) begin
 		x_amo_phase <= 3'h0;
 	end else if (|EXTENSION_A && d_memop_is_amo && (
 		bus_aph_ready_d || bus_dph_ready_d ||
@@ -677,7 +740,7 @@ end
 `ifdef HAZARD3_ASSERTIONS
 // Assertions for above block, extracted to avoid making assertions
 // reset-sensitive (limitation of yosys-smtbmc)
-always @ (posedge clk) if (rst_n) begin
+always @ (posedge clk) if (!rst) begin
 	if (|EXTENSION_A && d_memop_is_amo && (
 		bus_aph_ready_d || bus_dph_ready_d ||
 		m_trap_enter_vld || x_unaligned_addr ||
@@ -704,7 +767,7 @@ end
 `ifdef HAZARD3_ASSERTIONS
 // General AMO design assertions
 reg prop_dph_is_excl = 1'b0;
-always @ (posedge clk) if (rst_n) begin
+always @ (posedge clk) if (!rst) begin
 	if (bus_aph_ready_d && bus_aph_req_d) begin
 		prop_dph_is_excl <= bus_aph_excl_d;
 	end else if (bus_dph_ready_d) begin
@@ -819,8 +882,8 @@ if (EXTENSION_M) begin: has_muldiv
 	wire [W_DATA-1:0] x_muldiv_result_l;
 
 	reg x_muldiv_posted;
-	always @ (posedge clk or negedge rst_n)
-		if (!rst_n)
+	always @ (posedge clk)
+		if (rst)
 			x_muldiv_posted <= 1'b0;
 		else
 			x_muldiv_posted <= (x_muldiv_posted || (x_muldiv_op_vld && x_muldiv_op_rdy)) && x_stall;
@@ -834,7 +897,7 @@ if (EXTENSION_M) begin: has_muldiv
 	`include "hazard3_config_inst.vh"
 	) muldiv (
 		.clk        (clk),
-		.rst_n      (rst_n),
+		.rst        (rst),
 		.op         (d_mulop),
 		.op_vld     (x_muldiv_op_vld),
 		.op_rdy     (x_muldiv_op_rdy),
@@ -866,7 +929,7 @@ if (EXTENSION_M) begin: has_muldiv
 		`include "hazard3_config_inst.vh"
 		) mul_fast (
 			.clk        (clk),
-			.rst_n      (rst_n),
+			.rst        (rst),
 
 			.op_vld     (x_issue_fast_mul),
 			.op         (d_mulop),
@@ -971,7 +1034,7 @@ if (PMP_REGIONS > 0) begin: have_pmp
 	`include "hazard3_config_inst.vh"
 	) pmp (
 		.clk                       (clk),
-		.rst_n                     (rst_n),
+		.rst                       (rst),
 
 		.cfg_addr                  (x_pmp_cfg_addr),
 		.cfg_wen                   (x_pmp_cfg_wen),
@@ -1024,7 +1087,7 @@ if (DEBUG_SUPPORT != 0) begin: have_triggers
 	`include "hazard3_config_inst.vh"
 	) triggers (
 		.clk              (clk),
-		.rst_n            (rst_n),
+		.rst              (rst),
 
 		.cfg_addr         (x_trig_cfg_addr),
 		.cfg_wen          (x_trig_cfg_wen),
@@ -1076,8 +1139,8 @@ wire              x_csr_write_is_fetch_ordered;
 // most recent instruction to reach stage M (which may or may not still be in M).
 reg prev_instr_was_32_bit;
 
-always @ (posedge clk or negedge rst_n) begin
-	if (!rst_n) begin
+always @ (posedge clk) begin
+	if (rst) begin
 		xm_delay_irq_entry_on_ls_stagex <= 1'b0;
 		prev_instr_was_32_bit <= 1'b0;
 	end else begin
@@ -1153,7 +1216,8 @@ hazard3_csr #(
 ) csr_u (
 	.clk                        (clk),
 	.clk_always_on              (clk_always_on),
-	.rst_n                      (rst_n),
+	.rst                        (rst),
+	.mtvec_init                 (mtvec_init),
 
 	// Debugger signalling
 	.debug_mode                 (debug_mode),
@@ -1238,13 +1302,10 @@ hazard3_csr #(
 
 // Pipe register
 
-assign xm_rd_nxt = REGADDR_MASK & (
-	m_stall                                   ? xm_rd :
-	x_stall || d_starved || m_trap_enter_soon ? 5'h0  : d_rd
-);
+assign xm_rd_nxt =  m_stall ? xm_rd : x_stall || d_starved || m_trap_enter_soon ? 5'h0  : d_rd;
 
-always @ (posedge clk or negedge rst_n) begin
-	if (!rst_n) begin
+always @ (posedge clk) begin
+	if (rst) begin
 		xm_memop <= MEMOP_NONE;
 		xm_except <= EXCEPT_NONE;
 		xm_except_to_d_mode <= 1'b0;
@@ -1257,9 +1318,9 @@ always @ (posedge clk or negedge rst_n) begin
 	end else begin
 		unblock_out <= 1'b0;
 		if (!m_stall) begin
-			xm_rs1 <= REGADDR_MASK & d_rs1;
-			xm_rs2 <= REGADDR_MASK & d_rs2;
-			xm_rd  <= REGADDR_MASK & d_rd;
+			xm_rs1 <= d_rs1;
+			xm_rs2 <= d_rs2;
+			xm_rd  <= d_rd;
 			// If some X-sourced exception has squashed the address phase, need to squash the data phase too.
 			xm_memop            <= x_except != EXCEPT_NONE ? MEMOP_NONE : d_memop;
 			xm_except           <= x_except;
@@ -1293,7 +1354,7 @@ end
 
 `ifdef HAZARD3_ASSERTIONS
 // Properties for previous block
-always @ (posedge clk) if (rst_n) begin
+always @ (posedge clk) if (!rst) begin
 	if (!m_stall) begin
 		// Assuming downstream bus is compliant, err && !stalled is the
 		// last cycle of an error response, in which case this must have
@@ -1327,7 +1388,7 @@ end
 `endif
 
 `ifdef HAZARD3_ASSERTIONS
-always @ (posedge clk) if (rst_n) begin
+always @ (posedge clk) if (!rst) begin
 	// D bus errors must always squash younger load/stores
 	if ($past(bus_dph_err_d && !bus_dph_ready_d))
 		assert(!bus_aph_req_d);
@@ -1341,8 +1402,8 @@ end
 `endif
 
 // Datapath flops
-always @ (posedge clk or negedge rst_n) begin
-	if (!rst_n) begin
+always @ (posedge clk) begin
+	if (rst) begin
 		xm_result <= {W_DATA{1'b0}};
 		xm_addr_align <= 2'b00;
 	end else if (!m_stall && !(|EXTENSION_A && x_amo_phase == 3'h3 && !bus_dph_ready_d)) begin
@@ -1354,6 +1415,7 @@ always @ (posedge clk or negedge rst_n) begin
 			|EXTENSION_A && x_amo_phase == 3'h3     ? mw_result         :
 			|MUL_FASTER  && x_use_fast_mul          ? m_fast_mul_result :
 			|EXTENSION_M && d_aluop == ALUOP_MULDIV ? x_muldiv_result   :
+			d_is_ci                                 ? ci_result_latched :
 			                                          x_alu_result;
 		xm_addr_align <= x_addr_sum[1:0];
 	end
@@ -1397,7 +1459,7 @@ assign m_exception_return_addr = d_pc - (
 
 hazard3_power_ctrl power_ctrl (
 	.clk_always_on          (clk_always_on),
-	.rst_n                  (rst_n),
+	.rst                    (rst),
 
 	.pwrup_req              (pwrup_req),
 	.pwrup_ack              (pwrup_ack),
@@ -1471,8 +1533,8 @@ end
 // - Cleared by any store-conditional
 // - Cleared by non-debug-related trap exit
 
-always @ (posedge clk or negedge rst_n) begin
-	if (!rst_n) begin
+always @ (posedge clk) begin
+	if (rst) begin
 		mw_local_exclusive_reserved <= 1'b0;
 	end else begin
 		if (|EXTENSION_A && (!m_stall || bus_dph_err_d)) begin
@@ -1503,7 +1565,7 @@ wire m_reg_wen = |xm_rd && m_reg_wen_if_nonzero;
 
 `ifdef HAZARD3_X_CHECKS
 always @ (posedge clk) begin
-	if (rst_n) begin
+	if (!rst) begin
 		if (m_reg_wen && (^m_result === 1'bX)) begin
 			$display("Writing X to register file!");
 			$finish;
@@ -1517,7 +1579,7 @@ end
 // the ALU, since it already has the right paths. Make sure this is safe.
 // (Whatever instruction is in M ahead of AMO should have passed through by
 // the time AMO has reached read dphase)
-always @ (posedge clk) if (rst_n) begin
+always @ (posedge clk) if (!rst) begin
 	if (x_amo_phase == 3'h1)
 		assert(m_reg_wen_if_nonzero);
 	if (x_amo_phase == 3'h1)
@@ -1525,8 +1587,8 @@ always @ (posedge clk) if (rst_n) begin
 end
 `endif
 
-always @ (posedge clk or negedge rst_n) begin
-	if (!rst_n) begin
+always @ (posedge clk) begin
+	if (rst) begin
 		mw_result <= {W_DATA{1'b0}};
 	end else if (m_reg_wen_if_nonzero && !(|EXTENSION_A && x_amo_phase[1])) begin
 		// (don't trash the captured AMO read phase data during stage 2/3 of AMO -- we need it!)
@@ -1534,12 +1596,10 @@ always @ (posedge clk or negedge rst_n) begin
 	end
 end
 
-assign mw_rd_nxt = REGADDR_MASK & (
-	m_reg_wen_if_nonzero ? xm_rd : mw_rd
-);
+assign mw_rd_nxt = m_reg_wen_if_nonzero ? xm_rd : mw_rd;
 
-always @ (posedge clk or negedge rst_n) begin
-	if (!rst_n) begin
+always @ (posedge clk) begin
+	if (rst) begin
 		mw_rd <= {W_REGADDR{1'b0}};
 	end else begin
 `ifdef HAZARD3_X_CHECKS
@@ -1549,16 +1609,13 @@ always @ (posedge clk or negedge rst_n) begin
 		end
 `endif
 		if (m_reg_wen_if_nonzero) begin
-			mw_rd <= REGADDR_MASK & xm_rd;
+			mw_rd <= xm_rd;
 		end
 	end
 end
 
-hazard3_regfile_1w2r #(
-`include "hazard3_config_inst.vh"
-) regs (
+hazard3_regfile_1w2r regs (
 	.clk    (clk),
-	.rst_n  (rst_n),
 	// On downstream stall, we feed D's addresses back into regfile
 	// so that output does not change.
 	.raddr1 (x_stall && !d_starved ? d_rs1 : f_rs1_coarse),

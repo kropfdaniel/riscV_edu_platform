@@ -1,6 +1,13 @@
 /*****************************************************************************\
 |                      Copyright (C) 2021-2023 Luke Wren                      |
 |                     SPDX-License-Identifier: Apache-2.0                     |
+|                                                                             |
+|                     Modified 2026 by Theo Kluter                            |
+|                     Changes:                                                |
+|                       - Changed to active high reset                        |
+|                       - Changed to synchronous reset                        |
+|                       - Added an external Reset vector port                 |
+|                       - Removed E-extension                                 |
 \*****************************************************************************/
 
 `default_nettype none
@@ -11,7 +18,9 @@ module hazard3_decode #(
 `include "hazard3_width_const.vh"
 ) (
 	input  wire                 clk,
-	input  wire                 rst_n,
+	input  wire                 rst,
+	
+	input  wire [31:0]          reset_vector,
 
 	input  wire [31:0]          fd_cir,
 	input  wire [1:0]           fd_cir_err,
@@ -74,7 +83,8 @@ module hazard3_decode #(
 	output wire                 d_uninterruptible,
 	output wire [W_ADDR-1:0]    d_lspair_offset,
 	output reg                  d_fence_i,
-	output reg                  d_fence_d
+	output reg                  d_fence_d,
+	output reg                  d_is_ci
 );
 
 `include "rv_opcodes.vh"
@@ -94,7 +104,7 @@ wire d_invalid = fd_cir_invalid_16bit || d_invalid_32bit;
 assign d_uninterruptible = 1'b0;
 
 `ifdef HAZARD3_ASSERTIONS
-always @ (posedge clk) if (rst_n) begin
+always @ (posedge clk) if (!rst) begin
 	assert(!(d_invalid && fd_cir_is_uop));
 	assert(!(d_invalid && fd_cir_uop_atomic));
 end
@@ -167,8 +177,8 @@ reg cir_lock_prev;
 wire cir_lock = (cir_lock_prev && !deassert_cir_lock) || assert_cir_lock;
 assign df_cir_flush_behind = assert_cir_lock && !cir_lock_prev;
 
-always @ (posedge clk or negedge rst_n) begin
-	if (!rst_n) begin
+always @ (posedge clk) begin
+	if (rst) begin
 		cir_lock_prev <= 1'b0;
 	end else begin
 		cir_lock_prev <= cir_lock;
@@ -199,9 +209,9 @@ wire predicted_branch = |BRANCH_PREDICTOR && fd_cir_predbranch[0];
 wire hold_pc_on_cir_lock = assert_cir_lock && !(fd_cir_is_uop && !fd_cir_uop_no_pc_update && !x_stall);
 wire update_pc_on_cir_unlock = cir_lock_prev && finished_cir_lock && !fd_cir_uop_no_pc_update;
 
-always @ (posedge clk or negedge rst_n) begin
-	if (!rst_n) begin
-		pc <= RESET_VECTOR;
+always @ (posedge clk) begin
+	if (rst) begin
+		pc <= reset_vector;
 	end else begin
 		if (debug_dpc_wen) begin
 			pc <= debug_dpc_wdata;
@@ -223,7 +233,7 @@ always @ (posedge clk or negedge rst_n) begin
 end
 
 `ifdef HAZARD3_ASSERTIONS
-always @ (posedge clk) if (rst_n) begin
+always @ (posedge clk) if (!rst) begin
 	if (~|fd_cir_vld)            assert(!fd_cir_is_uop);
 	if (fd_cir_uop_no_pc_update) assert(fd_cir_is_uop);
 	if (fd_cir_uop_nonfinal)     assert(fd_cir_is_uop);
@@ -294,6 +304,7 @@ reg                  raw_sleep_block;
 reg                  raw_sleep_unblock;
 reg                  raw_fence_i;
 reg                  raw_fence_d;
+reg                  raw_is_ci;
 
 always @ (*) begin
 	// Assign some defaults
@@ -324,6 +335,8 @@ always @ (*) begin
 	d_funct7_32b = fd_cir[31:25];
 
 	d_invalid_32bit = 1'b0;
+
+	raw_is_ci = 1'b0;
 
 	casez (d_instr)
 	`RVOPC_BEQ:       begin d_invalid_32bit = DEBUG_SUPPORT && debug_mode; raw_rd = X0; raw_aluop = ALUOP_SUB; raw_branchcond = BCOND_ZERO;  end
@@ -398,26 +411,21 @@ always @ (*) begin
 	`RVOPC_EBREAK:    if (HAVE_CSR)              begin raw_except = EXCEPT_EBREAK; raw_rs2 = X0; raw_rs1 = X0; raw_rd = X0;                                                 end else begin d_invalid_32bit = 1'b1; end
 	`RVOPC_MRET:      if (HAVE_CSR && m_mode)    begin raw_except = EXCEPT_MRET;   raw_rs2 = X0; raw_rs1 = X0; raw_rd = X0;                                                 end else begin d_invalid_32bit = 1'b1; end
 	`RVOPC_WFI:       if (HAVE_CSR && !trap_wfi) begin raw_sleep_wfi = 1'b1;       raw_rs2 = X0; raw_rs1 = X0; raw_rd = X0;                                                 end else begin d_invalid_32bit = 1'b1; end
-
+	`RVOPC_CUSTOM_1:  begin raw_is_ci = 1'b1; end
 	default:          begin d_invalid_32bit = 1'b1; end
 	endcase
 
-	if (|EXTENSION_E && (raw_rd[4] || raw_rs1[4] || raw_rs2[4])) begin
-		d_invalid_32bit = 1'b1;
-	end
 end
 
 // Then gate key signals based on CIR fullness, fetch faults etc. The split
 // helps to avoid an event scheduling feedback loop that makes simulators
 // unhappy and slow, particularly verilator
 
-localparam [4:0] REGADDR_MASK = {~|EXTENSION_E, 4'hf};
-
 always @ (*) begin
 	// Pass through by default
-	d_rs1             = raw_rs1 & REGADDR_MASK;
-	d_rs2             = raw_rs2 & REGADDR_MASK;
-	d_rd              = raw_rd  & REGADDR_MASK;
+	d_rs1             = raw_rs1;
+	d_rs2             = raw_rs2;
+	d_rd              = raw_rd;
 	d_imm             = raw_imm;
 	d_alusrc_a        = raw_alusrc_a;
 	d_alusrc_b        = raw_alusrc_b;
@@ -436,6 +444,7 @@ always @ (*) begin
 	d_sleep_unblock   = raw_sleep_unblock;
 	d_fence_i         = raw_fence_i;
 	d_fence_d         = raw_fence_d;
+	d_is_ci           = raw_is_ci;
 
 	if (d_invalid || d_starved || d_except_instr_bus_fault || partial_predicted_branch) begin
 		d_rs1             = {W_REGADDR{1'b0}};
@@ -451,6 +460,7 @@ always @ (*) begin
 		d_sleep_unblock   = 1'b0;
 		d_fence_i         = 1'b0;
 		d_fence_d         = 1'b0;
+		d_is_ci           = 1'b0;
 
 		if (EXTENSION_M)
 			d_aluop = ALUOP_ADD;

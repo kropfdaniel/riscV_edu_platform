@@ -1,6 +1,13 @@
 /*****************************************************************************\
 |                      Copyright (C) 2021-2022 Luke Wren                      |
 |                     SPDX-License-Identifier: Apache-2.0                     |
+|                                                                             |
+|                     Modified 2026 by Theo Kluter                            |
+|                     Changes:                                                |
+|                      - Moved to active-high reset                           |
+|                      - Moved to synchronous reset                           |
+|                      - Added external reset vector                          |
+|                      - Added external mtvec_init vector                     |
 \*****************************************************************************/
 
 // Dual-ported top level file for Hazard3 CPU. This file instantiates the
@@ -19,7 +26,9 @@ module hazard3_cpu_2port #(
 	// Global signals
 	input wire                clk,
 	input wire                clk_always_on,
-	input wire                rst_n,
+	input wire                rst,
+	input wire [31:0]         reset_vector,
+	input wire [31:0]         mtvec_init,
 
 	// Power control signals
 	output wire               pwrup_req,
@@ -100,7 +109,15 @@ module hazard3_cpu_2port #(
 	// Level-sensitive interrupt sources
 	input wire [NUM_IRQS-1:0] irq,       // -> mip.meip
 	input wire                soft_irq,  // -> mip.msip
-	input wire                timer_irq  // -> mip.mtip
+	input wire                timer_irq, // -> mip.mtip
+
+	// custom-instruction interface (nios II compatible)
+	output wire	[6:0]		  ci_id,
+	output wire               ci_start,
+	output wire [W_DATA-1:0]  ci_dataa,
+	output wire [W_DATA-1:0]  ci_datab,
+	input  wire               ci_done,
+	input  wire [W_DATA-1:0]  ci_result
 );
 
 // ----------------------------------------------------------------------------
@@ -138,7 +155,9 @@ hazard3_core #(
 ) core (
 	.clk                        (clk),
 	.clk_always_on              (clk_always_on),
-	.rst_n                      (rst_n),
+	.rst                        (rst),
+	.reset_vector               (reset_vector),
+	.mtvec_init                 (mtvec_init),
 
 	.pwrup_req                  (pwrup_req),
 	.pwrup_ack                  (pwrup_ack),
@@ -196,7 +215,14 @@ hazard3_core #(
 
 	.irq                        (irq),
 	.soft_irq                   (soft_irq),
-	.timer_irq                  (timer_irq)
+	.timer_irq                  (timer_irq),
+
+	.ci_id                      (ci_id),
+	.ci_start                   (ci_start),
+	.ci_dataa                   (ci_dataa),
+	.ci_datab                   (ci_datab),
+	.ci_done                    (ci_done),
+	.ci_result                  (ci_result)
 );
 
 // ----------------------------------------------------------------------------
@@ -210,8 +236,8 @@ assign i_htrans = core_aph_req_i ? HTRANS_NSEQ : HTRANS_IDLE;
 assign i_hsize = core_hsize_i;
 
 reg dphase_active_i;
-always @ (posedge clk or negedge rst_n) begin
-	if (!rst_n) begin
+always @ (posedge clk) begin
+	if (rst) begin
 		dphase_active_i <= 1'b0;
 	end else if (i_hready) begin
 		dphase_active_i <= core_aph_req_i;
@@ -221,7 +247,7 @@ end
 `ifdef HAZARD3_ASSERTIONS
 // Wake->sleep transition must wait for outstanding instruction fetches to
 // complete, in particular because the arbiter clock will stop
-always @ (posedge clk) if (!rst_n) assert(clk_en || !(core_aph_req_i || dphase_active_i));
+always @ (posedge clk) if (rst) assert(clk_en || !(core_aph_req_i || dphase_active_i));
 `endif
 
 assign core_aph_ready_i = i_hready && core_aph_req_i;
@@ -262,8 +288,8 @@ reg       bus_active_dph_s;
 // clk_always_on is used because SBA may access the bus through this arbiter
 // whilst the core is asleep (same is not true for I-side interface)
 
-always @ (posedge clk_always_on or negedge rst_n) begin
-	if (!rst_n) begin
+always @ (posedge clk_always_on) begin
+	if (rst) begin
 		bus_hold_aph <= 1'b0;
 		bus_gnt_ds_prev <= 2'h0;
 	end else begin
@@ -278,8 +304,8 @@ assign {bus_gnt_d, bus_gnt_s} =
 	dbg_sbus_vld && !bus_active_dph_s ? 2'b01 :
 	                                    2'b00 ;
 
-always @ (posedge clk_always_on or negedge rst_n) begin
-	if (!rst_n) begin
+always @ (posedge clk_always_on) begin
+	if (rst) begin
 		bus_active_dph_d <= 1'b0;
 		bus_active_dph_s <= 1'b0;
 	end else if (d_hready) begin
