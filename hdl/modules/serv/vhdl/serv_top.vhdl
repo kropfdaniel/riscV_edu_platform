@@ -8,7 +8,8 @@
 --              Copyright (c) 2018 Olof Kindgren
 --              Original License: ISC
 -- Changes compared to original serv_top.v:
--- - debug generic is not supported (generic is still there for equiv check, but must be set to false)
+-- - debug generic is not supported
+-- - RESET_STATEGY generic is not supported. Only RESET_STATEGY="MINI" is implemented
 ----------------------------------------------------------------------------------
 
 library ieee;
@@ -23,9 +24,7 @@ entity serv_top is
         W                   : integer := 1;
         B                   : integer := W-1;
         PRE_REGISTER        : boolean := true;
-        RESET_STRATEGY      : string := "MINI";
         RESET_PC            : std_logic_vector(31 downto 0) := 32D"0";
-        DEBUG               : boolean := false; -- unsupported. must be set to false
         MDU                 : boolean := false;
         COMPRESSED          : boolean := false;
         ALIGN               : boolean := COMPRESSED;
@@ -91,9 +90,6 @@ architecture rtl of serv_top is
     signal alu_bool_op, mem_bytecnt, csr_source, csr_addr, lsb : std_logic_vector(1 downto 0);
     signal alu_rd_sel : std_logic_vector(2 downto 0);
 begin
-    assert (DEBUG = false)
-        report "serv_top PARAMETER ERROR: Debug is not supported. Must be set to false"
-        severity failure;
 
     gen_align : if ALIGN generate
         aligner : entity work.serv_aligner(rtl)
@@ -129,8 +125,7 @@ begin
     end generate gen_compressed;
 
     state : entity work.serv_state(rtl)
-    generic map ( RESET_STRATEGY => RESET_STRATEGY,
-                  WITH_CSR       => WITH_CSR,
+    generic map ( WITH_CSR       => WITH_CSR,
                   MDU            => MDU,
                   ALIGN          => ALIGN,
                   W              => W )
@@ -326,7 +321,6 @@ begin
 
     ctrl : entity work.serv_ctrl(rtl)
     generic map ( RESET_PC       => RESET_PC,
-                  RESET_STRATEGY => RESET_STRATEGY,
                   WITH_CSR       => WITH_CSR,
                   W              => W )
     port map ( clk           => clk,
@@ -440,8 +434,7 @@ begin
 
     gen_csr : if WITH_CSR generate
         csr : entity work.serv_csr(rtl)
-        generic map ( RESET_STRATEGY => RESET_STRATEGY, 
-                      W        => W )
+        generic map ( W        => W )
         port map ( i_clk        => clk, 
                    i_rst        => i_rst,
                    -- State

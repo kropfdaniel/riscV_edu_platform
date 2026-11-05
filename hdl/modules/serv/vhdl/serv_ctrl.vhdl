@@ -8,6 +8,8 @@
 --              Original architecture and Verilog implementation by:
 --              Copyright (c) 2018 Olof Kindgren
 --              Original License: ISC
+-- Changes compared to original serv_state.v:
+-- - RESET_STATEGY generic is not supported. Only RESET_STATEGY="MINI" is implemented
 ----------------------------------------------------------------------------------
 
 library ieee;
@@ -16,7 +18,6 @@ use ieee.numeric_std.all;
 
 entity serv_ctrl is
     generic(
-        RESET_STRATEGY : string := "MINI";
         RESET_PC       : std_logic_vector(31 downto 0) := 32d"0";
         WITH_CSR       : boolean := true;
         W              : integer := 1;
@@ -57,25 +58,12 @@ architecture rtl of serv_ctrl is
            pc_plus_offset_cy_r_w, pc_plus_offset_aligned, 
            plus_4, pc, new_pc, offset_a, offset_b : std_logic_vector(B downto 0);
     signal pc_plus_4_ext, pc_plus_offset_ext : std_logic_vector(W downto 0);
-
-    function init_pc(strategy : string) return std_logic_vector is
-    begin
-        if strategy = "NONE" then
-            return RESET_PC;
-        else
-            return (31 downto 0 => '0');
-        end if;
-    end function;
-
-    signal ibus_adr_int : std_logic_vector(31 downto 0) := init_pc(RESET_STRATEGY);
 begin
     assert (W = 1 or W = 4)
         report "serv_ctrl PARAMETER ERROR: W must be exactly 1 or 4."
         severity failure;
 
-    o_ibus_adr <= ibus_adr_int;
-    
-    pc <= ibus_adr_int(B downto 0);
+    pc <= o_ibus_adr(B downto 0);
 
     -- If i_iscomp=1: increment pc by 2 else increment pc by 4
     gen_plus_4_w_eq_1 : if W = 1 generate
@@ -141,15 +129,9 @@ begin
             pc_plus_4_cy_r <= i_pc_en and pc_plus_4_cy;
             pc_plus_offset_cy_r <= i_pc_en and pc_plus_offset_cy;
 
-            if RESET_STRATEGY = "NONE" then
-                if i_pc_en = '1' then
-                    ibus_adr_int <= new_pc & ibus_adr_int(31 downto W);
-                end if;
-            else
-                if i_pc_en = '1' or i_rst = '1' then
-                    ibus_adr_int <= RESET_PC when i_rst = '1' else
-                                    new_pc & ibus_adr_int(31 downto W);
-                end if;
+            if i_pc_en = '1' or i_rst = '1' then
+                o_ibus_adr <= RESET_PC when i_rst = '1' else
+                              new_pc & o_ibus_adr(31 downto W);
             end if;
         end if;
     end process;

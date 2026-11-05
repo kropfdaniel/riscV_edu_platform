@@ -8,6 +8,8 @@
 --              Original architecture and Verilog implementation by:
 --              Copyright (c) 2018 Olof Kindgren
 --              Original License: ISC
+-- Changes compared to original serv_state.v:
+-- - RESET_STATEGY generic is not supported. Only RESET_STATEGY="MINI" is implemented
 ----------------------------------------------------------------------------------
 
 library ieee;
@@ -16,7 +18,6 @@ use ieee.numeric_std.all;
 
 entity serv_csr is
     generic(
-        RESET_STRATEGY : string := "MINI";
         W              : integer := 1;
         B              : integer := W-1
     );
@@ -173,10 +174,8 @@ begin
                 mcause31 <= new_irq_int when i_trap = '1' else csr_in(B);
             end if;
             if i_rst = '1' then 
-                if RESET_STRATEGY /= "NONE" then
-                    new_irq_int <= '0';
-                    mie_mtie <= '0';
-                end if;
+                new_irq_int <= '0';
+                mie_mtie <= '0';
             end if;
         end if;
     end process;

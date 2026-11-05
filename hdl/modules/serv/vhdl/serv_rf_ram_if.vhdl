@@ -7,6 +7,8 @@
 --              Original architecture and Verilog implementation by:
 --              Copyright (c) 2019 Olof Kindgren
 --              Original License: ISC
+-- Changes compared to original serv_state.v:
+-- - RESET_STATEGY generic is not supported. Only RESET_STATEGY="MINI" is implemented
 ----------------------------------------------------------------------------------
 
 library ieee;
@@ -20,10 +22,6 @@ entity serv_rf_ram_if is
         -- Data width. Adjust to preferred width of SRAM data interface
         WIDTH          : integer := 8;
         W              : integer := 1;
-        -- Select reset strategy.                                      
-        -- "MINI" for resetting minimally required FFs
-        -- "NONE" for relying on FFs having a defined value on startupdepth
-        RESET_STRATEGY : string := "MINI";
         -- Number of CSR registers. These are allocated after the normal
         -- GPR registers in the RAM.
         CSR_REGS       : integer := 4;
@@ -188,12 +186,10 @@ begin
             end if;
             
             if i_rst then
-                if RESET_STRATEGY /= "NONE" then
-                    rgate  <= '0';
-                    rgnt   <= '0';
-                    rreq_r <= '0';
-                    rcnt   <= (others => '0');
-                end if;
+                rgate  <= '0';
+                rgnt   <= '0';
+                rreq_r <= '0';
+                rcnt   <= (others => '0');
             end if;
         end if;
     end process;

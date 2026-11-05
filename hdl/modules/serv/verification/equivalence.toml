@@ -1,0 +1,254 @@
+# Equivalence checks of the serv core: the VHDL port (vhdl/) against the serv reference (verilog/).
+# Run with ./run.py, see verification/README.md in the repository root for the format.
+
+
+# Include the verilog folder path as the verilog RTL files include themself various configuration / header files.
+[module]
+include = ["verilog"]
+
+[defaults]
+sat_cycles = 40
+
+
+[filesets.pkg]
+vhdl = ["serv_pkg.vhdl"]
+
+[filesets.immdec]
+vhdl    = ["serv_immdec.vhdl"]
+verilog = ["serv_immdec.v"]
+
+[filesets.compdec]
+vhdl    = ["serv_compdec.vhdl"]
+verilog = ["serv_compdec.v"]
+
+[filesets.aligner]
+vhdl    = ["serv_aligner.vhdl"]
+verilog = ["serv_aligner.v"]
+
+[filesets.decode]
+vhdl    = ["serv_decode.vhdl"]
+verilog = ["serv_decode.v"]
+
+[filesets.alu]
+vhdl    = ["serv_alu.vhdl"]
+verilog = ["serv_alu.v"]
+
+[filesets.bufreg]
+vhdl    = ["serv_bufreg.vhdl"]
+verilog = ["serv_bufreg.v"]
+
+[filesets.bufreg2]
+vhdl    = ["serv_bufreg2.vhdl"]
+verilog = ["serv_bufreg2.v"]
+
+[filesets.csr]
+vhdl    = ["serv_csr.vhdl"]
+verilog = ["serv_csr.v"]
+
+[filesets.ctrl]
+vhdl    = ["serv_ctrl.vhdl"]
+verilog = ["serv_ctrl.v"]
+
+[filesets.mem_if]
+vhdl    = ["serv_mem_if.vhdl"]
+verilog = ["serv_mem_if.v"]
+
+[filesets.state]
+vhdl    = ["serv_state.vhdl"]
+verilog = ["serv_state.v"]
+
+[filesets.rf_if]
+use     = ["pkg"]
+vhdl    = ["serv_rf_if.vhdl"]
+verilog = ["serv_rf_if.v"]
+
+[filesets.rf_ram]
+use     = ["pkg"]
+vhdl    = ["serv_rf_ram.vhdl"]
+verilog = ["serv_rf_ram.v"]
+
+[filesets.rf_ram_if]
+use     = ["pkg"]
+vhdl    = ["serv_rf_ram_if.vhdl"]
+verilog = ["serv_rf_ram_if.v"]
+
+[filesets.top]
+use     = ["pkg", "immdec", "compdec", "aligner", "decode", "alu", "bufreg", "bufreg2", "csr", "ctrl", "mem_if", "state", "rf_if", "rf_ram", "rf_ram_if"]
+vhdl    = ["serv_top.vhdl"]
+verilog = ["serv_top.v"]
+
+[filesets.rf_top]
+use     = ["top"]
+vhdl    = ["serv_rf_top.vhdl"]
+verilog = ["serv_rf_top.v"]
+
+[filesets.arbiter]
+vhdl    = ["servile_arbiter.vhdl"]
+verilog = ["servile_arbiter.v"]
+
+
+[[test]]
+name  = "serv_immdec"
+use   = ["immdec"]
+[test.basic]
+W = 1
+SHARED_RFADDR_IMM_REGS = false
+[test.extensive.matrix]
+W = [1, 4]
+SHARED_RFADDR_IMM_REGS = [false, true]
+
+[[test]]
+name  = "serv_compdec"
+use   = ["compdec"]
+
+[[test]]
+name  = "serv_aligner"
+use   = ["aligner"]
+
+[[test]]
+name  = "serv_decode"
+use   = ["decode"]
+[test.basic]
+MDU = false
+PRE_REGISTER = false
+[test.extensive.matrix]
+MDU = [false, true]
+PRE_REGISTER = [false, true]
+
+[[test]]
+name  = "serv_alu"
+use   = ["alu"]
+[test.basic]
+W = 1
+[test.extensive.matrix]
+W = [1, 2, 4, 8, 16, 32]
+
+[[test]]
+name  = "serv_bufreg"
+use   = ["bufreg"]
+[test.basic]
+W = 1
+MDU = false
+[test.extensive.matrix]
+W = [1, 4]
+MDU = [false, true]
+
+[[test]]
+name  = "serv_bufreg2"
+use   = ["bufreg2"]
+[test.basic]
+W = 1
+[test.extensive.matrix]
+W = [1, 4]
+
+[[test]]
+name  = "serv_csr"
+use   = ["csr"]
+[test.basic]
+W = 1
+[test.extensive.matrix]
+W = [1, 4]
+
+[[test]]
+name  = "serv_ctrl"
+use   = ["ctrl"]
+[test.basic]
+W = 1
+WITH_CSR = false
+[test.extensive.matrix]
+W = [1, 4]
+WITH_CSR = [false, true]
+
+[[test]]
+name  = "serv_mem_if"
+use   = ["mem_if"]
+[test.basic]
+W = 1
+WITH_CSR = false
+[test.extensive.matrix]
+W = [1, 2, 4, 8, 16, 32]
+WITH_CSR = [false, true]
+
+[[test]]
+name  = "serv_state"
+use   = ["state"]
+[test.basic]
+W = 1
+ALIGN = false
+MDU = false
+WITH_CSR = false
+[test.extensive.matrix]
+W = [1, 4]
+ALIGN = [false, true]
+MDU = [false, true]
+WITH_CSR = [false, true]
+
+[[test]]
+name  = "serv_rf_if"
+use   = ["rf_if"]
+[test.basic]
+W = 1
+WITH_CSR = false
+[test.extensive.matrix]
+W = [1, 2, 4, 8, 16, 32]
+WITH_CSR = [false, true]
+
+[[test]]
+name  = "serv_rf_ram"
+use   = ["rf_ram"]
+[test.basic]
+WIDTH = 1
+CSR_REGS = 0
+[test.extensive.matrix]
+WIDTH = [2, 4, 8, 16, 32]
+CSR_REGS = [0, 4]
+
+[[test]]
+name  = "serv_rf_ram_if"
+use   = ["rf_ram_if"]
+[test.basic]
+W = 1
+CSR_REGS = 0
+WIDTH = 2
+[test.extensive.matrix]
+W = [1]
+CSR_REGS = [0, 4]
+WIDTH = [2, 8, 32]
+# TODO add test with W=4
+
+
+[[test]]
+name  = "serv_top"
+use   = ["top"]
+[test.basic]
+W = 1
+MDU = false
+WITH_CSR = false
+PRE_REGISTER = false
+COMPRESSED = false
+[test.extensive.matrix]
+W = [1, 4]
+MDU = [false, true]
+WITH_CSR = [false, true]
+PRE_REGISTER = [false, true]
+COMPRESSED = [false, true]
+
+[[test]]
+name  = "serv_rf_top"
+use   = ["rf_top"]
+[test.basic]
+W = 1
+MDU = false
+WITH_CSR = false
+PRE_REGISTER = false
+COMPRESSED = false
+[test.extensive.matrix]
+W = [1, 4]
+MDU = [false, true]
+WITH_CSR = [false, true]
+PRE_REGISTER = [false, true]
+COMPRESSED = [false, true]
+
+[[test]]
+name  = "servile_arbiter"
+use   = ["arbiter"]

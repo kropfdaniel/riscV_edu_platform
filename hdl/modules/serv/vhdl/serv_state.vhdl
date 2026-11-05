@@ -8,6 +8,8 @@
 --              Original architecture and Verilog implementation by:
 --              Copyright (c) 2019 Olof Kindgren
 --              Original License: ISC
+-- Changes compared to original serv_state.v:
+-- - RESET_STATEGY generic is not supported. Only RESET_STATEGY="MINI" is implemented
 ----------------------------------------------------------------------------------
 
 library ieee;
@@ -16,7 +18,6 @@ use ieee.numeric_std.all;
 
 entity serv_state is
     generic(
-        RESET_STRATEGY : string := "MINI";
         WITH_CSR       : boolean := true;
         ALIGN          : boolean := false;
         MDU            : boolean := false;
@@ -186,7 +187,7 @@ begin
                 o_ctrl_jump <= o_init and take_branch;
             end if;
 
-            if (??i_rst) and RESET_STRATEGY /= "NONE" then
+            if (??i_rst) then
                 init_done <= '0';
                 o_ctrl_jump <= '0';
             end if;
@@ -222,7 +223,7 @@ begin
                 o_cnt <= std_logic_vector( unsigned(o_cnt) +
                                         unsigned'("00" & cnt_r(3)) ); 
                 cnt_lsb <= cnt_lsb(2 downto 0) & ( (cnt_lsb(3) and not o_cnt_done) or i_rf_ready );
-                if (??i_rst) and RESET_STRATEGY /= "NONE" then
+                if (??i_rst) then
                     o_cnt <= 3D"0";
                     cnt_lsb <= 4B"0000";
                 end if;
@@ -245,7 +246,7 @@ begin
                 end if;
                 o_cnt <= std_logic_vector( unsigned(o_cnt) +
                                            unsigned'("00" & cnt_en) ); 
-                if (??i_rst) and RESET_STRATEGY /= "NONE" then
+                if (??i_rst) then
                     o_cnt <= 3D"0";
                     cnt_en <= '0';
                 end if;

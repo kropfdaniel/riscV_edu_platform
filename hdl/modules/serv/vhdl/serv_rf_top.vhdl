@@ -8,7 +8,8 @@
 --              Copyright (c) 2019 Olof Kindgren
 --              Original License: ISC
 -- Changes compared to original serv_rf_top.v:
--- - debug generic is not supported (generic is still there for equiv check, but must be set to false)
+-- - debug generic is not supported
+-- - RESET_STATEGY generic is not supported. Only RESET_STATEGY="MINI" is implemented
 ----------------------------------------------------------------------------------
 
 library ieee;
@@ -36,14 +37,6 @@ entity serv_rf_top is
         -- 0 : Register after the decoder. Faster but uses more resources
         -- 1 : (default) Register before the decoder. Slower but uses less resources
         PRE_REGISTER    : boolean := false;
-        -- Amount of reset applied to design
-        -- "NONE" : No reset at all. Relies on a POR to set correct initialization
-        --          values and that core isn't reset during runtime
-        -- "MINI" : Standard setting. Resets the minimal amount of FFs needed to
-        --          restart execution from the instruction at RESET_PC
-        RESET_STRATEGY  : string := "MINI";
-
-        DEBUG           : boolean := false; -- unsupported. must be set to false
         WITH_CSR        : boolean := true;
         W               : integer := 1;
         RF_WIDTH        : integer := 2*W;
@@ -84,13 +77,9 @@ architecture rtl of serv_rf_top is
     signal waddr, raddr : std_logic_vector(RF_L2D-1 downto 0);
     signal wdata, rdata : std_logic_vector(RF_WIDTH-1 downto 0);
 begin
-    assert (DEBUG = false)
-        report "serv_rf_top PARAMETER ERROR: Debug is not supported. Must be set to false"
-        severity failure;
     
     rf_ram_if : entity work.serv_rf_ram_if(rtl)
     generic map ( WIDTH => RF_WIDTH,
-                  RESET_STRATEGY => RESET_STRATEGY,
                   CSR_REGS => CSR_REGS,
                   W => W  )
     port map ( -- SERV side
@@ -131,9 +120,7 @@ begin
     cpu : entity work.serv_top(rtl)
     generic map ( RESET_PC          => RESET_PC,
                   PRE_REGISTER      => PRE_REGISTER,
-                  RESET_STRATEGY    => RESET_STRATEGY,
                   WITH_CSR          => WITH_CSR,
-                  DEBUG             => DEBUG,
                   MDU               => MDU,
                   COMPRESSED        => COMPRESSED,
                   ALIGN             => ALIGN,
