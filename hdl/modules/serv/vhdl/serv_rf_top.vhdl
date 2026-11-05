@@ -10,6 +10,7 @@
 -- Changes compared to original serv_rf_top.v:
 -- - debug generic is not supported
 -- - RESET_STATEGY generic is not supported. Only RESET_STATEGY="MINI" is implemented
+-- - Changed RESET_PC generic to reset_vec input signal
 ----------------------------------------------------------------------------------
 
 library ieee;
@@ -20,8 +21,6 @@ use work.serv_pkg.all;
 
 entity serv_rf_top is
     generic(
-        RESET_PC        : std_logic_vector(31 downto 0);
-
         -- COMPRESSED=1: Enable the compressed decoder and allowed misaligned jump of pc
         -- COMPRESSED=0: Disable the compressed decoder and does not allow the misaligned jump of pc        
         COMPRESSED      : boolean := false;
@@ -65,7 +64,9 @@ entity serv_rf_top is
         i_ext_rd            : in  std_logic_vector(31 downto 0);
         i_ext_ready         : in  std_logic;
         -- MDU
-        o_mdu_valid         : out std_logic
+        o_mdu_valid         : out std_logic;
+        -- External
+        reset_vec           : in std_logic_vector(31 downto 0)
     );
 end entity serv_rf_top;
 
@@ -118,8 +119,7 @@ begin
                o_rdata  => rdata );
 
     cpu : entity work.serv_top(rtl)
-    generic map ( RESET_PC          => RESET_PC,
-                  PRE_REGISTER      => PRE_REGISTER,
+    generic map ( PRE_REGISTER      => PRE_REGISTER,
                   WITH_CSR          => WITH_CSR,
                   MDU               => MDU,
                   COMPRESSED        => COMPRESSED,
@@ -161,6 +161,8 @@ begin
                o_ext_rs1    => o_ext_rs1,   
                o_ext_rs2    => o_ext_rs2,   
                -- MDU          
-               o_mdu_valid  => o_mdu_valid );
+               o_mdu_valid  => o_mdu_valid,
+               -- External
+               reset_vec    => reset_vec );
 
 end architecture;

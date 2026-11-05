@@ -10,6 +10,7 @@
 --              Original License: ISC
 -- Changes compared to original serv_state.v:
 -- - RESET_STATEGY generic is not supported. Only RESET_STATEGY="MINI" is implemented
+-- - Changed RESET_PC generic to reset_vec input signal
 ----------------------------------------------------------------------------------
 
 library ieee;
@@ -18,7 +19,6 @@ use ieee.numeric_std.all;
 
 entity serv_ctrl is
     generic(
-        RESET_PC       : std_logic_vector(31 downto 0) := 32d"0";
         WITH_CSR       : boolean := true;
         W              : integer := 1;
         B              : integer := W-1
@@ -46,8 +46,8 @@ entity serv_ctrl is
         o_rd                : out std_logic_vector(B downto 0);
         o_bad_pc            : out std_logic_vector(B downto 0);
         -- External
+        reset_vec           : in std_logic_vector(31 downto 0);
         o_ibus_adr          : out std_logic_vector(31 downto 0)
-
     );
 end entity serv_ctrl;
 
@@ -130,7 +130,7 @@ begin
             pc_plus_offset_cy_r <= i_pc_en and pc_plus_offset_cy;
 
             if i_pc_en = '1' or i_rst = '1' then
-                o_ibus_adr <= RESET_PC when i_rst = '1' else
+                o_ibus_adr <= reset_vec when i_rst = '1' else
                               new_pc & o_ibus_adr(31 downto W);
             end if;
         end if;

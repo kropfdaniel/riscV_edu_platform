@@ -39,9 +39,10 @@ Record project-specific changes here so it is clear how the local sources differ
 - Removed the `RESET_STRATEGY` generic and its propagation through the VHDL hierarchy.
   - Reset behavior is unconditional when reset is asserted; affected control, CSR, register-file
     interface, and state logic no longer support the upstream `"NONE"` reset strategy.
-  - The program counter is set to `RESET_PC` when reset is asserted.
+  - The program counter is set to `reset_vec` when reset is asserted.
 - Removed the `DEBUG` generic and its propagation through the VHDL hierarchy.
 
 ### Verilog
 
 - Included servile_arbiter with changes made to signal names
+- Changed `RESET_PC` parameter to `reset_vec` input signal

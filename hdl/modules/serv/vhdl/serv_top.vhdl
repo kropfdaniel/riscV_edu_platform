@@ -10,6 +10,7 @@
 -- Changes compared to original serv_top.v:
 -- - debug generic is not supported
 -- - RESET_STATEGY generic is not supported. Only RESET_STATEGY="MINI" is implemented
+-- - Changed RESET_PC generic to reset_vec input signal
 ----------------------------------------------------------------------------------
 
 library ieee;
@@ -24,7 +25,6 @@ entity serv_top is
         W                   : integer := 1;
         B                   : integer := W-1;
         PRE_REGISTER        : boolean := true;
-        RESET_PC            : std_logic_vector(31 downto 0) := 32D"0";
         MDU                 : boolean := false;
         COMPRESSED          : boolean := false;
         ALIGN               : boolean := COMPRESSED;
@@ -67,7 +67,9 @@ entity serv_top is
         o_ext_rs1           : out std_logic_vector(31 downto 0);  
         o_ext_rs2           : out std_logic_vector(31 downto 0);
         -- MDU
-        o_mdu_valid         : out std_logic
+        o_mdu_valid         : out std_logic;
+        -- External
+        reset_vec           : in std_logic_vector(31 downto 0)
     );
 end entity serv_top;
 
@@ -320,8 +322,7 @@ begin
                i_dat       => dbus_rdt );
 
     ctrl : entity work.serv_ctrl(rtl)
-    generic map ( RESET_PC       => RESET_PC,
-                  WITH_CSR       => WITH_CSR,
+    generic map ( WITH_CSR       => WITH_CSR,
                   W              => W )
     port map ( clk           => clk,
                i_rst         => i_rst,
@@ -345,7 +346,8 @@ begin
                o_rd          => ctrl_rd,    
                o_bad_pc      => bad_pc,
                -- External
-               o_ibus_adr    => wb_ibus_adr );
+               o_ibus_adr    => wb_ibus_adr,
+               reset_vec     => reset_vec );
 
     alu : entity work.serv_alu(rtl)
     generic map ( W => W)

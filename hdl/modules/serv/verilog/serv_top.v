@@ -3,6 +3,9 @@
  *
  * SPDX-FileCopyrightText: 2018 Olof Kindgren <olof@award-winning.me>
  * SPDX-License-Identifier: ISC
+ * Modified 2026 by Daniel Kropf
+ * Changes:
+ * - moved to reset_vec input instead of parameter
  */
 `default_nettype none
 
@@ -12,7 +15,6 @@ module serv_top
     parameter	    B = W-1,
     parameter	    PRE_REGISTER = 1,
     parameter	    RESET_STRATEGY = "MINI",
-    parameter	    RESET_PC = 32'd0,
     parameter [0:0] DEBUG = 1'b0,
     parameter [0:0] MDU = 1'b0,
     parameter [0:0] COMPRESSED=0,
@@ -77,7 +79,9 @@ module serv_top
    output wire [31:0] o_ext_rs1,
    output wire [31:0] o_ext_rs2,
    //MDU
-   output wire        o_mdu_valid);
+   output wire        o_mdu_valid,
+   // External
+   input  wire [31:0] reset_vec);
 
    wire [4:0]    rd_addr;
    wire [4:0]    rs1_addr;
@@ -430,8 +434,7 @@ module serv_top
       .i_dat        (dbus_rdt));
 
    serv_ctrl
-     #(.RESET_PC (RESET_PC),
-       .RESET_STRATEGY (RESET_STRATEGY),
+     #(.RESET_STRATEGY (RESET_STRATEGY),
        .WITH_CSR (WITH_CSR),
        .W (W))
    ctrl
@@ -458,7 +461,8 @@ module serv_top
       .o_rd       (ctrl_rd),
       .o_bad_pc   (bad_pc),
       //External
-      .o_ibus_adr (wb_ibus_adr));
+      .o_ibus_adr (wb_ibus_adr),
+      .reset_vec  (reset_vec));
 
    serv_alu #(.W (W)) alu
      (

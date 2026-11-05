@@ -3,11 +3,13 @@
  *
  * SPDX-FileCopyrightText: 2018 Olof Kindgren <olof@award-winning.me>
  * SPDX-License-Identifier: ISC
+ * Modified 2026 by Daniel Kropf
+ * Changes:
+ * - moved to reset_vec input instead of parameter
  */
 `default_nettype none
 module serv_ctrl
   #(parameter RESET_STRATEGY = "MINI",
-    parameter RESET_PC = 32'd0,
     parameter WITH_CSR = 1,
     parameter W = 1,
     parameter B = W-1
@@ -35,7 +37,8 @@ module serv_ctrl
    output wire [B:0] o_rd,
    output wire [B:0] o_bad_pc,
    //External
-   output reg [31:0] o_ibus_adr);
+   output reg [31:0] o_ibus_adr,
+   input wire [31:0] reset_vec);
 
    wire [B:0] pc_plus_4;
    wire       pc_plus_4_cy;
@@ -98,7 +101,7 @@ module serv_ctrl
    assign pc_plus_offset_cy_r_w[0] = pc_plus_offset_cy_r;
    assign pc_plus_4_cy_r_w[0] = pc_plus_4_cy_r;
 
-   initial if (RESET_STRATEGY == "NONE") o_ibus_adr = RESET_PC;
+   initial if (RESET_STRATEGY == "NONE") o_ibus_adr = reset_vec;
 
    always @(posedge clk) begin
       pc_plus_4_cy_r <= i_pc_en & pc_plus_4_cy;
@@ -109,7 +112,7 @@ module serv_ctrl
 	   o_ibus_adr <= {new_pc, o_ibus_adr[31:W]};
       end else begin
 	 if (i_pc_en | i_rst)
-	   o_ibus_adr <= i_rst ? RESET_PC : {new_pc, o_ibus_adr[31:W]};
+	   o_ibus_adr <= i_rst ? reset_vec : {new_pc, o_ibus_adr[31:W]};
       end
    end
 endmodule

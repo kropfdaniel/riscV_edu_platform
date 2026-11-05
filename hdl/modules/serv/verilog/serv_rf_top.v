@@ -3,12 +3,14 @@
  *
  * SPDX-FileCopyrightText: 2019 Olof Kindgren <olof@award-winning.me>
  * SPDX-License-Identifier: ISC
+ * Modified 2026 by Daniel Kropf
+ * Changes:
+ * - moved to reset_vec input instead of parameter
  */
 `default_nettype none
 
 module serv_rf_top
-  #(parameter RESET_PC = 32'd0,
-    /*  COMPRESSED=1: Enable the compressed decoder and allowed misaligned jump of pc
+  #(/*  COMPRESSED=1: Enable the compressed decoder and allowed misaligned jump of pc
         COMPRESSED=0: Disable the compressed decoder and does not allow the misaligned jump of pc
     */
     parameter [0:0] COMPRESSED = 0,
@@ -30,7 +32,7 @@ module serv_rf_top
        "NONE" : No reset at all. Relies on a POR to set correct initialization
                  values and that core isn't reset during runtime
        "MINI" : Standard setting. Resets the minimal amount of FFs needed to
-                 restart execution from the instruction at RESET_PC
+                 restart execution from the instruction at reset_vec
      */
     parameter RESET_STRATEGY = "MINI",
     parameter [0:0] DEBUG = 1'b0,
@@ -84,7 +86,9 @@ module serv_rf_top
    input  wire [31:0] i_ext_rd,
    input  wire        i_ext_ready,
    // MDU
-   output wire        o_mdu_valid);
+   output wire        o_mdu_valid,
+   // External
+   input  wire [31:0] reset_vec);
 
    localparam CSR_REGS = WITH_CSR*4;
 
@@ -150,8 +154,7 @@ module serv_rf_top
       .o_rdata (rdata));
 
    serv_top
-     #(.RESET_PC (RESET_PC),
-       .PRE_REGISTER (PRE_REGISTER),
+     #(.PRE_REGISTER (PRE_REGISTER),
        .RESET_STRATEGY (RESET_STRATEGY),
        .WITH_CSR (WITH_CSR),
        .DEBUG (DEBUG),
@@ -221,7 +224,9 @@ module serv_rf_top
       .o_ext_rs1    (o_ext_rs1),
       .o_ext_rs2    (o_ext_rs2),
       //MDU
-      .o_mdu_valid  (o_mdu_valid));
+      .o_mdu_valid  (o_mdu_valid),
+      //External
+      .reset_vec    (reset_vec));
 
 endmodule
 `default_nettype wire
