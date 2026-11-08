@@ -3,27 +3,30 @@
  *
  * SPDX-FileCopyrightText: 2019 Olof Kindgren <olof@award-winning.me>
  * SPDX-License-Identifier: ISC
+ * Modified 2026 by Daniel Kropf
+ * Changes:
+ * - renamed parameter to all caps
  */
 `default_nettype none
 module serv_rf_ram_if
   #(//Data width. Adjust to preferred width of SRAM data interface
-    parameter width=8,
+    parameter WIDTH=8,
 
     parameter W = 1,
     //Select reset strategy.
     // "MINI" for resetting minimally required FFs
     // "NONE" for relying on FFs having a defined value on startup
-    parameter reset_strategy="MINI",
+    parameter RESET_STRATEGY="MINI",
 
     //Number of CSR registers. These are allocated after the normal
     // GPR registers in the RAM.
-    parameter csr_regs=4,
+    parameter CSR_REGS=4,
 
     //Internal parameters calculated from above values. Do not change
     parameter B=W-1,
-    parameter raw=$clog2(32+csr_regs), //Register address width
-    parameter l2w=$clog2(width), //log2 of width
-    parameter aw=5+raw-l2w) //Address width
+    parameter RAW=$clog2(32+CSR_REGS), //Register address width
+    parameter L2W=$clog2(WIDTH), //log2 of width
+    parameter AW=5+RAW-L2W) //Address width
   (
    //SERV side
    input wire		   i_clk,
@@ -31,25 +34,25 @@ module serv_rf_ram_if
    input wire		   i_wreq,
    input wire		   i_rreq,
    output wire		   o_ready,
-   input wire [raw-1:0]	   i_wreg0,
-   input wire [raw-1:0]	   i_wreg1,
+   input wire [RAW-1:0]	   i_wreg0,
+   input wire [RAW-1:0]	   i_wreg1,
    input wire		   i_wen0,
    input wire		   i_wen1,
    input wire [B:0]	   i_wdata0,
    input wire [B:0]	   i_wdata1,
-   input wire [raw-1:0]	   i_rreg0,
-   input wire [raw-1:0]	   i_rreg1,
+   input wire [RAW-1:0]	   i_rreg0,
+   input wire [RAW-1:0]	   i_rreg1,
    output wire [B:0]	   o_rdata0,
    output wire [B:0]	   o_rdata1,
    //RAM side
-   output wire [aw-1:0]	   o_waddr,
-   output wire [width-1:0] o_wdata,
+   output wire [AW-1:0]	   o_waddr,
+   output wire [WIDTH-1:0] o_wdata,
    output wire		   o_wen,
-   output wire [aw-1:0]	   o_raddr,
+   output wire [AW-1:0]	   o_raddr,
    output wire		   o_ren,
-   input wire [width-1:0]  i_rdata);
+   input wire [WIDTH-1:0]  i_rdata);
 
-   localparam ratio = width/W;
+   localparam ratio = WIDTH/W;
    localparam CMSB = 4-$clog2(W); //Counter MSB
    localparam l2r  = $clog2(ratio);
 
@@ -64,8 +67,8 @@ module serv_rf_ram_if
 
    wire [CMSB:0] 	     wcnt;
 
-   reg [width-1:0]   wdata0_r;
-   reg [width+W-1:0]   wdata1_r;
+   reg [WIDTH-1:0]   wdata0_r;
+   reg [WIDTH+W-1:0]   wdata1_r;
 
    reg 		     wen0_r;
    reg 		     wen1_r;
@@ -84,11 +87,11 @@ module serv_rf_ram_if
    endgenerate
 
    assign 	     o_wdata = wtrig1 ?
-			       wdata1_r[width-1:0] :
+			       wdata1_r[WIDTH-1:0] :
 			       wdata0_r;
 
-   wire [raw-1:0] wreg  = wtrig1 ? i_wreg1 : i_wreg0;
-   generate if (width == 32) begin : gen_w_eq_32
+   wire [RAW-1:0] wreg  = wtrig1 ? i_wreg1 : i_wreg0;
+   generate if (WIDTH == 32) begin : gen_w_eq_32
       assign o_waddr = wreg;
    end else begin : gen_w_neq_32
       assign o_waddr = {wreg, wcnt[CMSB:l2r]};
@@ -105,8 +108,8 @@ module serv_rf_ram_if
 	 wen1_r    <= i_wen1;
       end
 
-      wdata0_r  <= {i_wdata0,wdata0_r[width-1:W]};
-      wdata1_r  <= {i_wdata1,wdata1_r[width+W-1:W]};
+      wdata0_r  <= {i_wdata0,wdata0_r[WIDTH-1:W]};
+      wdata1_r  <= {i_wdata1,wdata1_r[WIDTH+W-1:W]};
 
    end
 
@@ -117,16 +120,16 @@ module serv_rf_ram_if
 
    wire 	  rtrig0;
 
-   wire [raw-1:0] rreg = rtrig0 ? i_rreg1 : i_rreg0;
-   generate if (width == 32) begin : gen_rreg_eq_32
+   wire [RAW-1:0] rreg = rtrig0 ? i_rreg1 : i_rreg0;
+   generate if (WIDTH == 32) begin : gen_rreg_eq_32
       assign o_raddr = rreg;
    end else begin : gen_rreg_neq_32
       assign o_raddr = {rreg, rcnt[CMSB:l2r]};
    end
    endgenerate
 
-   reg [width-1:0]  rdata0;
-   reg [width-1-W:0]  rdata1;
+   reg [WIDTH-1:0]  rdata0;
+   reg [WIDTH-1-W:0]  rdata1;
 
    reg 		    rgate;
 
@@ -146,9 +149,9 @@ module serv_rf_ram_if
 
    generate if (ratio > 2) begin : gen_rdata1_w_neq_2
       always @(posedge i_clk) begin
-	 rdata1 <= {{W{1'b0}},rdata1[width-W-1:W]};
+	 rdata1 <= {{W{1'b0}},rdata1[WIDTH-W-1:W]};
 	 if (rtrig1)
-	   rdata1[width-W-1:0] <= i_rdata[width-1:W];
+	   rdata1[WIDTH-W-1:0] <= i_rdata[WIDTH-1:W];
       end
    end else begin : gen_rdata1_w_eq_2
       always @(posedge i_clk) if (rtrig1) rdata1 <= i_rdata[W*2-1:W];
@@ -167,12 +170,12 @@ module serv_rf_ram_if
       rreq_r <= i_rreq;
       rgnt <= rreq_r;
 
-      rdata0 <= {{W{1'b0}}, rdata0[width-1:W]};
+      rdata0 <= {{W{1'b0}}, rdata0[WIDTH-1:W]};
       if (rtrig0)
 	rdata0 <= i_rdata;
 
       if (i_rst) begin
-	 if (reset_strategy != "NONE") begin
+	 if (RESET_STRATEGY != "NONE") begin
 	    rgate <= 1'b0;
 	    rgnt <= 1'b0;
 	    rreq_r <= 1'b0;

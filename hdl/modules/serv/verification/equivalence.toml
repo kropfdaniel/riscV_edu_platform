@@ -6,9 +6,6 @@
 [module]
 include = ["verilog"]
 
-[defaults]
-sat_cycles = 40
-
 
 [filesets.pkg]
 vhdl = ["serv_pkg.vhdl"]
@@ -72,8 +69,11 @@ use     = ["pkg"]
 vhdl    = ["serv_rf_ram_if.vhdl"]
 verilog = ["serv_rf_ram_if.v"]
 
-[filesets.top]
+[filesets.serv_internal]
 use     = ["pkg", "immdec", "compdec", "aligner", "decode", "alu", "bufreg", "bufreg2", "csr", "ctrl", "mem_if", "state", "rf_if", "rf_ram", "rf_ram_if"]
+
+[filesets.top]
+use     = ["serv_internal"]
 vhdl    = ["serv_top.vhdl"]
 verilog = ["serv_top.v"]
 
@@ -90,6 +90,7 @@ verilog = ["servile_arbiter.v"]
 [[test]]
 name  = "serv_immdec"
 use   = ["immdec"]
+sat_cycles = 33
 [test.basic]
 W = 1
 SHARED_RFADDR_IMM_REGS = false
@@ -100,14 +101,18 @@ SHARED_RFADDR_IMM_REGS = [false, true]
 [[test]]
 name  = "serv_compdec"
 use   = ["compdec"]
+sat_cycles = 2
 
 [[test]]
 name  = "serv_aligner"
 use   = ["aligner"]
+sat_cycles = 3
+reset = { rst = [1, 0] }
 
 [[test]]
 name  = "serv_decode"
 use   = ["decode"]
+sat_cycles = 2
 [test.basic]
 MDU = false
 PRE_REGISTER = false
@@ -118,6 +123,7 @@ PRE_REGISTER = [false, true]
 [[test]]
 name  = "serv_alu"
 use   = ["alu"]
+sat_cycles = 33
 [test.basic]
 W = 1
 [test.extensive.matrix]
@@ -126,6 +132,7 @@ W = [1, 2, 4, 8, 16, 32]
 [[test]]
 name  = "serv_bufreg"
 use   = ["bufreg"]
+sat_cycles = 33
 [test.basic]
 W = 1
 MDU = false
@@ -136,6 +143,7 @@ MDU = [false, true]
 [[test]]
 name  = "serv_bufreg2"
 use   = ["bufreg2"]
+sat_cycles = 33
 [test.basic]
 W = 1
 [test.extensive.matrix]
@@ -144,6 +152,8 @@ W = [1, 4]
 [[test]]
 name  = "serv_csr"
 use   = ["csr"]
+sat_cycles = 33
+reset = { i_rst = [1, 0] }
 [test.basic]
 W = 1
 [test.extensive.matrix]
@@ -152,6 +162,8 @@ W = [1, 4]
 [[test]]
 name  = "serv_ctrl"
 use   = ["ctrl"]
+sat_cycles = 33
+reset = { i_rst = [1, 0] }
 [test.basic]
 W = 1
 WITH_CSR = false
@@ -162,6 +174,7 @@ WITH_CSR = [false, true]
 [[test]]
 name  = "serv_mem_if"
 use   = ["mem_if"]
+sat_cycles = 2
 [test.basic]
 W = 1
 WITH_CSR = false
@@ -172,6 +185,8 @@ WITH_CSR = [false, true]
 [[test]]
 name  = "serv_state"
 use   = ["state"]
+sat_cycles = 33
+reset = { i_rst = [1, 0] }
 [test.basic]
 W = 1
 ALIGN = false
@@ -186,6 +201,7 @@ WITH_CSR = [false, true]
 [[test]]
 name  = "serv_rf_if"
 use   = ["rf_if"]
+sat_cycles = 2
 [test.basic]
 W = 1
 WITH_CSR = false
@@ -196,6 +212,7 @@ WITH_CSR = [false, true]
 [[test]]
 name  = "serv_rf_ram"
 use   = ["rf_ram"]
+sat_cycles = 2
 [test.basic]
 WIDTH = 1
 CSR_REGS = 0
@@ -206,6 +223,8 @@ CSR_REGS = [0, 4]
 [[test]]
 name  = "serv_rf_ram_if"
 use   = ["rf_ram_if"]
+sat_cycles = 33
+reset = { i_rst = [1, 0] }
 [test.basic]
 W = 1
 CSR_REGS = 0
@@ -220,6 +239,8 @@ WIDTH = [2, 8, 32]
 [[test]]
 name  = "serv_top"
 use   = ["top"]
+sat_cycles = 33
+reset = { i_rst = [1, 0] }
 [test.basic]
 W = 1
 MDU = false
@@ -232,10 +253,26 @@ MDU = [false, true]
 WITH_CSR = [false, true]
 PRE_REGISTER = [false, true]
 COMPRESSED = [false, true]
+
+[[test]]
+name  = "serv_top_blackbox"
+top   = "serv_top"
+use   = ["top"]
+sat_cycles = 3
+reset = { i_rst = [1, 0] }
+blackbox_instances = ["serv_internal"]
+[test.basic]
+W = 1
+MDU = false
+WITH_CSR = false
+PRE_REGISTER = false
+COMPRESSED = false
 
 [[test]]
 name  = "serv_rf_top"
 use   = ["rf_top"]
+reset = { i_rst = [1, 0] }
+sat_cycles = 33
 [test.basic]
 W = 1
 MDU = false
@@ -250,5 +287,20 @@ PRE_REGISTER = [false, true]
 COMPRESSED = [false, true]
 
 [[test]]
+name  = "serv_rf_top_blackbox"
+top   = "serv_rf_top"
+use   = ["rf_top"]
+reset = { i_rst = [1, 0] }
+sat_cycles = 3
+blackbox_instances = ["serv_internal"]
+[test.basic]
+W = 1
+MDU = false
+WITH_CSR = false
+PRE_REGISTER = false
+COMPRESSED = false
+
+[[test]]
 name  = "servile_arbiter"
 use   = ["arbiter"]
+sat_cycles = 2

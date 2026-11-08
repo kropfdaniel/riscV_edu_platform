@@ -114,9 +114,9 @@ module serv_rf_top
    wire [RF_WIDTH-1:0] rdata;
 
    serv_rf_ram_if
-     #(.width    (RF_WIDTH),
-       .reset_strategy (RESET_STRATEGY),
-       .csr_regs (CSR_REGS),
+     #(.WIDTH    (RF_WIDTH),
+       .RESET_STRATEGY (RESET_STRATEGY),
+       .CSR_REGS (CSR_REGS),
        .W(W))
    rf_ram_if
      (.i_clk    (clk),
@@ -142,8 +142,8 @@ module serv_rf_top
       .i_rdata  (rdata));
 
    serv_rf_ram
-     #(.width (RF_WIDTH),
-       .csr_regs (CSR_REGS))
+     #(.WIDTH (RF_WIDTH),
+       .CSR_REGS (CSR_REGS))
    rf_ram
      (.i_clk    (clk),
       .i_waddr (waddr),

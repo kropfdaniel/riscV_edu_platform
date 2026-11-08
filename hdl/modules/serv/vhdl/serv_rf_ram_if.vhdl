@@ -27,9 +27,9 @@ entity serv_rf_ram_if is
         CSR_REGS       : integer := 4;
         -- Internal parameters calculated from above values. Do not change
         B              : integer := W-1;
-        raw            : integer := clog2(32+CSR_REGS); -- Register address width
-        l2w            : integer := clog2(WIDTH);       -- log2 of width
-        aw             : integer := 5+raw-l2w           -- Address width
+        RAW            : integer := clog2(32+CSR_REGS); -- Register address width
+        L2W            : integer := clog2(WIDTH);       -- log2 of width
+        AW             : integer := 5+RAW-L2W           -- Address width
     );
     port(
         -- SERV side
@@ -38,21 +38,21 @@ entity serv_rf_ram_if is
         i_wreq              : in  std_logic;
         i_rreq              : in  std_logic;
         o_ready             : out std_logic;
-        i_wreg0             : in  std_logic_vector(raw-1 downto 0);
-        i_wreg1             : in  std_logic_vector(raw-1 downto 0);
+        i_wreg0             : in  std_logic_vector(RAW-1 downto 0);
+        i_wreg1             : in  std_logic_vector(RAW-1 downto 0);
         i_wen0              : in  std_logic;
         i_wen1              : in  std_logic;
         i_wdata0            : in  std_logic_vector(B downto 0);
         i_wdata1            : in  std_logic_vector(B downto 0);
-        i_rreg0             : in  std_logic_vector(raw-1 downto 0);
-        i_rreg1             : in  std_logic_vector(raw-1 downto 0);
+        i_rreg0             : in  std_logic_vector(RAW-1 downto 0);
+        i_rreg1             : in  std_logic_vector(RAW-1 downto 0);
         o_rdata0            : out std_logic_vector(B downto 0);
         o_rdata1            : out std_logic_vector(B downto 0);
         -- RAM side
-        o_waddr             : out std_logic_vector(aw-1 downto 0);
+        o_waddr             : out std_logic_vector(AW-1 downto 0);
         o_wdata             : out std_logic_vector(width-1 downto 0);
         o_wen               : out std_logic;
-        o_raddr             : out std_logic_vector(aw-1 downto 0);
+        o_raddr             : out std_logic_vector(AW-1 downto 0);
         o_ren               : out std_logic;
         i_rdata             : in  std_logic_vector(width-1 downto 0)
     );
@@ -68,7 +68,7 @@ architecture rtl of serv_rf_ram_if is
     signal rcnt, wcnt : unsigned(CMSB downto 0);
     signal wdata0_r, rdata0 : std_logic_vector(WIDTH-1 downto 0);
     signal wdata1_r : std_logic_vector(WIDTH+W-1 downto 0);
-    signal wreg, rreg : std_logic_vector(raw-1 downto 0);
+    signal wreg, rreg : std_logic_vector(RAW-1 downto 0);
     signal rdata1 : std_logic_vector(WIDTH-1-W downto 0);
 begin
     o_ready <= rgnt or i_wreq;
