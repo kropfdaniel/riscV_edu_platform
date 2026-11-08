@@ -113,6 +113,7 @@ include     = ["verilog"]         # Verilog `include directories
 [defaults]                        # optional, applies to every test that doesn't set its own
 reset      = { rst_n = [0, 1] }   # signal = [value at SAT step 1, step 2, ...]
 sat_cycles = 12                   # number of clock cycles to prove (default 12)
+k_induction = false               # use temporal k-induction instead of bounded checking (default false)
 
 [filesets.pkg]                    # named groups of files that tests (or other filesets) can 'use'
 vhdl = ["hazard3_pkg.vhdl"]
@@ -138,7 +139,7 @@ Per test, the following keys are available:
 | `use`, `vhdl`, `verilog` | Source files, dependencies first. The VHDL list must contain the top-level entity                       |
 | `blackbox`                   | Verilog stubs for vendor primitives (adds `-ignore-unknown-cells` to the SAT solver)                  |
 | `blackbox_instances`         | Instances of the top level to blackbox, so only their wiring is proven, see [Blackboxed instances](#blackboxed-instances) |
-| `reset`, `sat_cycles`      | Override the `[defaults]`                                                                             |
+| `reset`, `sat_cycles`, `k_induction` | Override the `[defaults]`                                                                    |
 | `generic_map`                | `{ VHDL_NAME = "VERILOG_NAME" }` for generics that are named differently in the Verilog reference     |
 | `basic`                      | Generics of the basic level. Without it, the defaults of the entity/module are used, so they must agree |
 | `extensive.matrix`           | `GENERIC = [values]`, the full product of all listed generics is checked                              |

@@ -265,7 +265,7 @@ def _yosys_script(test: EquivTest, silver: Path, script: Path, vcd: Path | None,
         "prep -top equiv",
         "async2sync; opt",
         # Blackboxes have no definition, so the SAT solver must not fail on unknown cells
-        "sat " + ("-ignore-unknown-cells " if test.blackbox else "")
+        "sat " + ("-ignore-unknown-cells " if test.blackbox else "") + ("-tempinduct " if test.k_induction else "")
         + f"-seq {test.sat_cycles} -verify -prove-asserts -set-init-zero {show_options}{reset}",
     ]
     return "\n".join(lines) + "\n"
