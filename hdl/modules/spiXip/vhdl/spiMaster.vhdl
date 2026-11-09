@@ -15,42 +15,42 @@ use ieee.numeric_std.all;
 entity spiMaster is
   port (
     --! System clock domain
-    clock       : in std_logic;
+    clock                   : in std_logic;
     --! Active-high system reset
-    reset       : in std_logic;
+    reset                   : in std_logic;
 
-    -- Tick Timing Inputs (from tickGenerator)
-    --! 2x bit-period tick (SCK toggle rate)
-    tickX2      : in std_logic;
+    -- Tick Timing Inputs 
+    --! 2x bit-period tick (SCK toggle rate) (from tickGenerator)
+    tickX2                  : in std_logic;
 
     -- Control Interface (Driven by the SPI FSM)
     --! Flag to start shifting out/in a full byte
-    start       : in std_logic;
+    startByteTransaction    : in std_logic;
     --! Parallel byte data to transmit out via MOSI
-    txByte      : in std_logic_vector(7 downto 0);
+    txByte                  : in std_logic_vector(7 downto 0);
     --! Parallel byte data accumulated from MISO
-    rxByte      : out std_logic_vector(7 downto 0);
+    rxByte                  : out std_logic_vector(7 downto 0);
     --! High while a byte shift transaction is active
-    busy        : out std_logic;
+    busyByteTransaction     : out std_logic;
 
     -- External SPI Physical Pins
     --! SPI Serial Clock
-    spiClk      : out std_logic;
+    spiClk                  : out std_logic;
     --! Master Out, Slave In
-    spiMoSi     : out std_logic;
+    spiMoSi                 : out std_logic;
     --! Master In, Slave Out (from Flash)
-    spiMiSo     : in std_logic;
+    spiMiSo                 : in std_logic;
     --! Flash Write Protect (low active)
-    flashWpN    : out std_logic;
+    flashWpN                : out std_logic;
     --! Flash Reset (low active)
-    flashResetN : out std_logic
+    flashResetN             : out std_logic
   );
 end entity spiMaster;
 
 architecture rtl of spiMaster is
     --! FSM States definition for SPI transaction lifecycle
     type t_state is (
-        --! Waits on start signal to start a transaction 
+        --! Waits on startByteTransaction signal to start a transaction 
         IDLE, 
         --! Waits on the next tick so the transaction start synchronously 
         SYNC_TICK,
@@ -82,19 +82,19 @@ begin
     begin
         if rising_edge(clock) then 
             if reset then
-                s_state     <= IDLE;
-                busy        <= '0';
-                spiClk      <= '0';
-                s_shiftReg  <= (others => '0');
+                s_state             <= IDLE;
+                busyByteTransaction <= '0';
+                spiClk              <= '0';
+                s_shiftReg          <= (others => '0');
             else
                 case s_state is 
                     when IDLE =>
                         spiClk <= '0';
-                        if start then
-                            s_state <= SYNC_TICK;
-                            busy    <= '1';
+                        if startByteTransaction then
+                            s_state             <= SYNC_TICK;
+                            busyByteTransaction <= '1';
                         else
-                            busy    <= '0';
+                            busyByteTransaction <= '0';
                         end if;
                     when SYNC_TICK =>
                         if tickX2 then
