@@ -3,7 +3,6 @@
 --! @copyright MIT License
 --! @brief Fixed tick generator for SPI masters using a generic divisor.
 --!
---! ### Details
 --! Derives 4x and 2x tick pulses from a 50 MHz reference clock.
 --! Includes integrated 2-stage synchronizers (synchroFlop) to safely 
 --! cross tick pulses into the destination clock domain.
@@ -80,7 +79,7 @@ begin
     end if;
   end process makeFlops;
   
-  --! Dual-flop synchronizer crossing the 4x tick pulse into the destination system clock domain
+  --! Dual-flop synchronizer (from modules/support) crossing the 4x tick pulse into the destination system clock domain
   tick4 : entity work.synchroFlop(platformIndependant)
     port map ( clockIn  => clock_50MHz,
                clockOut => clock,
@@ -88,7 +87,7 @@ begin
                D        => s_tickRateX4Tick,
                Q        => tickRateX4Tick);
 
-  --! Dual-flop synchronizer crossing the 2x tick pulse into the destination system clock domain
+  --! Dual-flop synchronizer (from modules/support) crossing the 2x tick pulse into the destination system clock domain
   tick2 : entity work.synchroFlop(platformIndependant)
     port map ( clockIn  => clock_50MHz,
                clockOut => clock,
