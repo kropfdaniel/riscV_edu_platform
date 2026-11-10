@@ -106,6 +106,7 @@ begin
 
                         if s_bitCounter = 0 then
                             s_state <= IDLE; -- Byte complete
+                            busyByteTransaction <= '0';
                         else
                             s_bitCounter <= s_bitCounter - 1;
                             s_state      <= SCK_HIGH;

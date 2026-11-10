@@ -111,48 +111,42 @@ begin
 
                 case s_state is 
                     when IDLE =>
-                        spiNCs <= '1';
                         if startRead then 
                             s_state <= SEND_READ_CMD;
+                            spiNCs <= '0';
                         end if;
                     when SEND_READ_CMD =>
                         if busyByteTransaction = '0' and startByteTransaction = '0' then
-                            spiNCs                  <= '0';
                             txByte                  <= 8x"03";
                             startByteTransaction    <= '1';
                             s_state                 <= SEND_ADDR_HIGH;
                         end if;
                     when SEND_ADDR_HIGH =>
                         if busyByteTransaction = '0' and startByteTransaction = '0' then
-                            spiNCs                  <= '0';
                             txByte                  <= readAddress(23 downto 16);
                             startByteTransaction    <= '1';
                             s_state                 <= SEND_ADDR_MID;
                         end if;
                     when SEND_ADDR_MID =>
                         if busyByteTransaction = '0' and startByteTransaction = '0' then
-                            spiNCs                  <= '0';
                             txByte                  <= readAddress(15 downto 8);
                             startByteTransaction    <= '1';
                             s_state                 <= SEND_ADDR_LOW;
                         end if;
                     when SEND_ADDR_LOW =>
                         if busyByteTransaction = '0' and startByteTransaction = '0' then
-                            spiNCs                  <= '0';
                             txByte                  <= readAddress(7 downto 0);
                             startByteTransaction    <= '1';
                             s_state                 <= RECEIVE_DATA_LOWEST;
                         end if;
                     when RECEIVE_DATA_LOWEST =>
                         if busyByteTransaction = '0' and startByteTransaction = '0' then
-                            spiNCs                  <= '0';
                             txByte                  <= 8x"00";
                             startByteTransaction    <= '1';
                             s_state                 <= RECEIVE_DATA_LOW;
                         end if;
                     when RECEIVE_DATA_LOW =>
                         if busyByteTransaction = '0' and startByteTransaction = '0' then
-                            spiNCs                  <= '0';
                             txByte                  <= 8x"00";
                             readData(7 downto 0)    <= rxByte; -- Read byte from last byte transaction
                             startByteTransaction    <= '1';
@@ -160,7 +154,6 @@ begin
                         end if;
                     when RECEIVE_DATA_HIGH =>
                         if busyByteTransaction = '0' and startByteTransaction = '0' then
-                            spiNCs                  <= '0';
                             txByte                  <= 8x"00";
                             readData(15 downto 8)   <= rxByte; -- Read byte from last byte transaction
                             startByteTransaction    <= '1';
@@ -168,7 +161,6 @@ begin
                         end if;
                     when RECEIVE_DATA_HIGHEST =>
                         if busyByteTransaction = '0' and startByteTransaction = '0' then
-                            spiNCs                  <= '0';
                             txByte                  <= 8x"00";
                             readData(23 downto 16)  <= rxByte; -- Read byte from last byte transaction
                             startByteTransaction    <= '1';

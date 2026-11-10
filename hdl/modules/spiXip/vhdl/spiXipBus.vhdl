@@ -50,8 +50,7 @@ entity spiXipBus is
         ERR_O       : out std_logic;
         -- LOCK_I is not used in this module
         -- RTY_I is not implemented
-        --! select input
-        SEL_I       : in std_logic_vector((DataBits/8) - 1 downto 0);
+        -- SEL_I is not used (module always returns a full word)
         --! strobe input
         STB_I       : in std_logic;
         -- TGA_O and TGC_O are not implemented
@@ -95,9 +94,9 @@ architecture platformIndependent of spiXipBus is
     --! flag to start an spi byte transaction from spiXipController to spiByteTransceiver
     signal s_startByteTransaction   : std_logic;
     --! Byte to send onto SPI from spiXipController to spiByteTransceiver
-    signal s_txByte                 : std_logic;
+    signal s_txByte                 : std_logic_vector(7 downto 0);
     --! Byte received onto SPI from spiByteTransceiver to spiXipController
-    signal s_rxByte                 : std_logic;
+    signal s_rxByte                 : std_logic_vector(7 downto 0);
     --! Flag that a SPI Byte transaction is ongoing from spiByteTransceiver to spiXipController
     signal s_busyByteTransaction    : std_logic;
     --! Flag which indicates when the spi controller should start to read a byte.
@@ -155,7 +154,7 @@ begin
         );
 
     --! Protocol Controller for SPI Flash Execute-in-Place (XIP) reads.
-    Controller : entity spiXipController(rtl)
+    Controller : entity work.spiXipController(rtl)
         generic map (
             DataBits => DataBits,
             AddrBits => 24
