@@ -15,12 +15,14 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+use work.spiXip_pkg.all;
+
 entity spiXipController is
     generic ( 
-        --! Number of Data Bits. Only 32-bit data width is currently supported.
+        --! Number of Data Bits. Only 32-bit data width is supported.
         DataBits    : integer := 32;
-        --! Number of Address Bits. Flash address must be 24 bits.
-        AddrBits    : integer := 24
+        --! Number of Address Bits. Only Flash address equal to 24 bits is supported.
+        AddrBits    : integer := C_FLASH_ADDR_WIDTH
     );
     port (
         --! System clock domain
