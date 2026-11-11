@@ -33,7 +33,7 @@ entity serv_rf_ram is
 end entity serv_rf_ram;
 
 architecture rtl of serv_rf_ram is
-    signal memory  : std_logic_array_t(0 to DEPTH-1)(WIDTH-1 downto 0) := (others => (others => '0'));
+    signal memory  : std_logic_array_t(0 to DEPTH-1)(WIDTH-1 downto 0);
     signal rdata   : std_logic_vector(WIDTH-1 downto 0);
     signal regzero : std_logic;
 begin
