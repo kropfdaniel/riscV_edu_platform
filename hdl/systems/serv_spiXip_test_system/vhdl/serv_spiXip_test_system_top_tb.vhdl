@@ -1,3 +1,35 @@
+-- =============================================================================
+-- Author:      Daniel Kropf
+-- License:     MIT
+-- 
+-- Description: 
+--   Black-box verification testbench for a RISC-V SoC integrating the SERV 
+--   bit-serial core and a custom Wishbone-to-SPI XIP (Execute-In-Place) 
+--   Flash controller. 
+--
+-- Verification Strategy (SPI Address Interception):
+--   To avoid GHDL simulator crashes associated with VHDL-2008 internal array 
+--   probing, this testbench verifies CPU execution entirely via the physical 
+--   SPI pins without altering the Unit Under Test (UUT). 
+--
+--   1. A Mock SPI Flash process feeds RISC-V instructions over the MISO line.
+--   2. The CPU computes a test operation (5 + 10 = 15) and shifts the result.
+--   3. The CPU executes a Load Word (lw) using the result as the target address. 
+--   4. The testbench intercepts the read command on the MOSI line and asserts
+--      that the requested 24-bit physical SPI address perfectly matches the 
+--      expected math result (0x0F0000).
+--   5. Backup: if the CPU never requests to read address 0x0F0000 of the Flash
+--      the testbench will fail.
+--
+-- Executed Assembly Program:
+--   0x00: addi x1, x0, 5    (Load 5 into x1)
+--   0x04: addi x2, x0, 10   (Load 10 into x2)
+--   0x08: add  x3, x1, x2   (x3 = x1 + x2 = 15)
+--   0x0C: slli x3, x3, 16   (Shift 15 left by 16 bits -> 0x0F0000)
+--   0x10: lw   x5, 0(x3)    (Read from 0x0F0000 to broadcast result over SPI)
+--   0x14: j .               (Infinite loop, never reached)
+-- =============================================================================
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -28,7 +60,7 @@ architecture sim of tb_system_top is
         x"b3", x"81", x"20", x"00", -- 0x08: add  x3, x1, x2  | Add x1 + x2 and store the result (15) in x3
         x"93", x"91", x"01", x"01", -- 0x0C: slli x3, x3, 16  | Shift 15 left by 16 bits (x3 = 0x0F0000)
         x"83", x"a2", x"01", x"00", -- 0x10: lw   x5, 0(x3)   | Read from 0x0F0000 (Forces SPI to output address)
-        x"6f", x"00", x"00", x"00"  -- 0x14: j .              | Infinite loop
+        x"6f", x"00", x"00", x"00"  -- 0x14: j .              | Infinite loop, never reached
     );
 
 begin
