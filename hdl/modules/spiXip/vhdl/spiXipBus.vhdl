@@ -118,9 +118,10 @@ begin
     begin
         if rising_edge(CLK_I) then 
             if RST_I then
-                s_errorReg  <= '0';
-                s_ackReg    <= '0';
-                s_startRead <= '0';
+                s_errorReg               <= '0';
+                s_ackReg                 <= '0';
+                s_startRead              <= '0';
+                s_isCorrectTransaction_d <= '0';
             else
                 s_isCorrectTransaction_d <= s_isCorrectTransaction;
                 s_startRead              <= '0'; -- Default
