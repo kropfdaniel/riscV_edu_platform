@@ -16,12 +16,12 @@ module servile_arbiter
    input wire [31:0]  i_serv_dbus_dat,
    input wire [3:0]   i_serv_dbus_sel,
    input wire 	      i_serv_dbus_we,
-   input wire 	      i_serv_dbus_stb,
+   input wire 	      i_serv_dbus_cyc,
    output wire [31:0] o_serv_dbus_rdt,
    output wire 	      o_serv_dbus_ack,
 
    input wire [31:0]  i_serv_ibus_adr,
-   input wire 	      i_serv_ibus_stb,
+   input wire 	      i_serv_ibus_cyc,
    output wire [31:0] o_serv_ibus_rdt,
    output wire 	      o_serv_ibus_ack,
 
@@ -29,21 +29,21 @@ module servile_arbiter
    output wire [31:0] o_wb_dat,
    output wire [3:0]  o_wb_sel,
    output wire 	      o_wb_we,
-   output wire 	      o_wb_stb,
+   output wire 	      o_wb_cyc,
    input wire [31:0]  i_wb_rdt,
    input wire 	      i_wb_ack);
 
    assign o_serv_dbus_rdt = i_wb_rdt;
-   assign o_serv_dbus_ack = i_wb_ack & !i_serv_ibus_stb;
+   assign o_serv_dbus_ack = i_wb_ack & !i_serv_ibus_cyc;
 
    assign o_serv_ibus_rdt = i_wb_rdt;
-   assign o_serv_ibus_ack = i_wb_ack & i_serv_ibus_stb;
+   assign o_serv_ibus_ack = i_wb_ack & i_serv_ibus_cyc;
 
-   assign o_wb_adr = i_serv_ibus_stb ? i_serv_ibus_adr : i_serv_dbus_adr;
+   assign o_wb_adr = i_serv_ibus_cyc ? i_serv_ibus_adr : i_serv_dbus_adr;
    assign o_wb_dat = i_serv_dbus_dat;
    assign o_wb_sel = i_serv_dbus_sel;
-   assign o_wb_we  = i_serv_dbus_we & !i_serv_ibus_stb;
-   assign o_wb_stb = i_serv_ibus_stb | i_serv_dbus_stb;
+   assign o_wb_we  = i_serv_dbus_we & !i_serv_ibus_cyc;
+   assign o_wb_cyc = i_serv_ibus_cyc | i_serv_dbus_cyc;
 
 
 endmodule
