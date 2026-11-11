@@ -290,7 +290,8 @@ def _yosys_script(test: EquivTest, silver: Path, script: Path, smt2: Path, vcd: 
         # TODO delete: # Blackboxes have no definition, so the SAT solver must not fail on unknown cells
         # TODO delete: "sat " + ("-ignore-unknown-cells " if test.blackbox else "")
         # TODO delete: + f"-seq {test.sat_cycles} -verify -prove-asserts -set-init-zero {show_options}{reset}",
-        "setuunknown -anyseq -zero",
+        "setundef -init -zero",
+        "dffunmap",
         f"write_smt2 -wires {smt2}",
     ]
     return "\n".join(lines) + "\n"
