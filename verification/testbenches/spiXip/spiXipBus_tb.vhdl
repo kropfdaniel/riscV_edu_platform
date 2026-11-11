@@ -30,7 +30,6 @@ architecture sim of spiXipBus_tb is
     signal stb_i       : std_logic := '0';
     signal we_i        : std_logic := '0';
     signal cti_i       : std_logic_vector(2 downto 0) := "000";
-    signal sel_i       : std_logic_vector(3 downto 0) := "1111";
 
     -- External SPI
     signal spiNCs      : std_logic;
@@ -59,7 +58,6 @@ begin
             ADDR_I      => addr_i,
             CYC_I       => cyc_i,
             ERR_O       => err_o,
-            SEL_I       => sel_i,
             STB_I       => stb_i,
             WE_I        => we_i,
             CTI_I       => cti_i,

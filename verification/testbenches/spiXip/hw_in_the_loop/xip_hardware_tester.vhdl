@@ -110,7 +110,6 @@ begin
             ADDR_I      => wb_addr_i,
             CYC_I       => wb_cyc_i,
             ERR_O       => wb_err_o,
-            SEL_I       => "1111",     -- Read full 32-bit word
             STB_I       => wb_stb_i,
             WE_I        => '0',        -- Read only
             CTI_I       => "000",      -- Classic cycle

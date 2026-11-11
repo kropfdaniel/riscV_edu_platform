@@ -1,3 +1,6 @@
+#!/bin/bash
+set -e  # Exit immediately if any command fails
+
 mkdir -p build
 yosys -m ghdl.so -c yosys.tcl
 nextpnr-ecp5 --threads 7 --timing-allow-fail --85k --package CABGA381 --json build/xip_hardware_tester.json --lpf gecko5.lpf --textcfg build/xip_hardware_tester.config

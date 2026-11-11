@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
 --! @author     Daniel Kropf
---! @brief      Low-level SPI Mode 0 (CPOL=0 and CPHA=0) physical datapath and transceiver engine.
+--! @brief      Low-level SPI Mode 0 (CPOL=0 and CPHA=0) physical datapath and transceiver.
 --!
 --! Manages byte-level transmission and reception.
 --! Optimizes MISO sampling and MOSI shifting for standard 1-bit SPI communication with 
@@ -105,7 +105,7 @@ begin
                         s_shiftReg <= s_shiftReg(6 downto 0) & s_miso_sampled; -- Shift left
 
                         if s_bitCounter = 0 then
-                            s_state <= IDLE; -- Byte complete
+                            s_state             <= IDLE; -- Byte complete
                             busyByteTransaction <= '0';
                         else
                             s_bitCounter <= s_bitCounter - 1;

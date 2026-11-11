@@ -15,18 +15,17 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
 
 use work.spiXip_pkg.all;
 
 entity spiXipBus is
     generic (
-        --! Number of Data Bits. Only 32-bit data width is currently supported.
+        --! Number of Wishbone Data Bits. Only 32-bit data width is currently supported.
         DataBits    : integer                                   := 32;
-        --! Number of Address Bits.
+        --! Number of Wishbone Address Bits.
         AddrBits    : integer                                   := 32;
-        --! Base address of this module (used by interconnect, not internally).
-        BaseAddress : std_logic_vector( AddrBits-1 downto 0)    := std_logic_vector(to_unsigned(0, AddrBits));
+        --! Base Wishbone address of this module (used by interconnect, not internally).
+        BaseAddress : std_logic_vector( AddrBits-1 downto 0)    := (AddrBits => '0');
         --! Number of lower address bits used by the Flash memory (21 bits = 2MiB space)
         FlashAddrWidth : integer range 1 to C_FLASH_ADDR_WIDTH  := 21
     );
@@ -124,14 +123,14 @@ begin
                 s_startRead <= '0';
             else
                 s_isCorrectTransaction_d <= s_isCorrectTransaction;
-                s_startRead <= '0'; -- Default
-                s_errorReg <= not(s_errorReg) and s_isMyTransaction and not(s_isCorrectTransaction);
-                s_ackReg   <= not(s_ackReg) and s_isCorrectTransaction and s_spiReadAck;
+                s_startRead              <= '0'; -- Default
+                s_errorReg               <= not(s_errorReg) and s_isMyTransaction and not(s_isCorrectTransaction);
+                s_ackReg                 <= not(s_ackReg) and s_isCorrectTransaction and s_spiReadAck;
                 
                 if (s_isCorrectTransaction = '1' and s_isCorrectTransaction_d = '0') then
                     -- when the transaction arrives, store the flash address
                     s_flashAddrReg(FlashAddrWidth-1 downto 0) <= ADDR_I(FlashAddrWidth-1 downto 0);
-                    s_startRead <= '1';
+                    s_startRead                               <= '1';
                 end if;
             end if;
         end if;
@@ -140,37 +139,37 @@ begin
     --! Low-level SPI Mode 0 (CPOL=0 and CPHA=0) physical datapath and transceiver engine.
     Transceiver : entity work.spiByteTransceiver(rtl)
         port map (
-            clock                   => CLK_I,
-            reset                   => RST_I,
-            startByteTransaction    => s_startByteTransaction,
-            txByte                  => s_txByte,
-            rxByte                  => s_rxByte,
-            busyByteTransaction     => s_busyByteTransaction,
-            spiClk                  => spiClk,
-            spiMoSi                 => spiMoSi,
-            spiMiSo                 => spiMiSo,
-            flashWpN                => flashWpN,
-            flashResetN             => flashResetN
+            clock                => CLK_I,
+            reset                => RST_I,
+            startByteTransaction => s_startByteTransaction,
+            txByte               => s_txByte,
+            rxByte               => s_rxByte,
+            busyByteTransaction  => s_busyByteTransaction,
+            spiClk               => spiClk,
+            spiMoSi              => spiMoSi,
+            spiMiSo              => spiMiSo,
+            flashWpN             => flashWpN,
+            flashResetN          => flashResetN
         );
 
     --! Protocol Controller for SPI Flash Execute-in-Place (XIP) reads.
     Controller : entity work.spiXipController(rtl)
         generic map (
             DataBits => DataBits,
-            AddrBits => 24
+            AddrBits => C_FLASH_ADDR_WIDTH
         )
         port map (
-            clock                   => CLK_I,
-            reset                   => RST_I,
-            startRead               => s_startRead,
-            readAddress             => s_flashAddrReg,
-            readData                => DAT_O,
-            readAck                 => s_spiReadAck,
-            startByteTransaction    => s_startByteTransaction,
-            txByte                  => s_txByte,
-            rxByte                  => s_rxByte,
-            busyByteTransaction     => s_busyByteTransaction,
-            spiNCs                  => spiNCs            
+            clock                => CLK_I,
+            reset                => RST_I,
+            startRead            => s_startRead,
+            readAddress          => s_flashAddrReg,
+            readData             => DAT_O,
+            readAck              => s_spiReadAck,
+            startByteTransaction => s_startByteTransaction,
+            txByte               => s_txByte,
+            rxByte               => s_rxByte,
+            busyByteTransaction  => s_busyByteTransaction,
+            spiNCs               => spiNCs            
         );
     
 end architecture;

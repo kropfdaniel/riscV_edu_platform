@@ -13,7 +13,6 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
 
 use work.spiXip_pkg.all;
 
@@ -82,8 +81,6 @@ architecture rtl of spiXipController is
     );
     --! Current state register for the Controller FSM
     signal s_state : t_state;
-
-
 begin
     assert (DataBits = 32) 
         report "spiXipController: Only 32-bit data width is currently supported." 
@@ -98,12 +95,12 @@ begin
     begin
         if rising_edge(clock) then
             if reset then
-                s_state                 <= IDLE;
-                startByteTransaction    <= '0';
-                readAck                 <= '0';
-                readData                <= (others => '0');
-                txByte                  <= (others => '0');
-                spiNCs                  <= '1';
+                s_state              <= IDLE;
+                startByteTransaction <= '0';
+                readAck              <= '0';
+                readData             <= (others => '0');
+                txByte               <= (others => '0');
+                spiNCs               <= '1';
             else
                 -- Auto-clear
                 startByteTransaction <= '0'; 
@@ -117,61 +114,61 @@ begin
                         end if;
                     when SEND_READ_CMD =>
                         if busyByteTransaction = '0' and startByteTransaction = '0' then
-                            txByte                  <= 8x"03";
-                            startByteTransaction    <= '1';
-                            s_state                 <= SEND_ADDR_HIGH;
+                            txByte               <= 8x"03";
+                            startByteTransaction <= '1';
+                            s_state              <= SEND_ADDR_HIGH;
                         end if;
                     when SEND_ADDR_HIGH =>
                         if busyByteTransaction = '0' and startByteTransaction = '0' then
-                            txByte                  <= readAddress(23 downto 16);
-                            startByteTransaction    <= '1';
-                            s_state                 <= SEND_ADDR_MID;
+                            txByte               <= readAddress(23 downto 16);
+                            startByteTransaction <= '1';
+                            s_state              <= SEND_ADDR_MID;
                         end if;
                     when SEND_ADDR_MID =>
                         if busyByteTransaction = '0' and startByteTransaction = '0' then
-                            txByte                  <= readAddress(15 downto 8);
-                            startByteTransaction    <= '1';
-                            s_state                 <= SEND_ADDR_LOW;
+                            txByte               <= readAddress(15 downto 8);
+                            startByteTransaction <= '1';
+                            s_state              <= SEND_ADDR_LOW;
                         end if;
                     when SEND_ADDR_LOW =>
                         if busyByteTransaction = '0' and startByteTransaction = '0' then
-                            txByte                  <= readAddress(7 downto 0);
-                            startByteTransaction    <= '1';
-                            s_state                 <= RECEIVE_DATA_LOWEST;
+                            txByte               <= readAddress(7 downto 0);
+                            startByteTransaction <= '1';
+                            s_state              <= RECEIVE_DATA_LOWEST;
                         end if;
                     when RECEIVE_DATA_LOWEST =>
                         if busyByteTransaction = '0' and startByteTransaction = '0' then
-                            txByte                  <= 8x"00";
-                            startByteTransaction    <= '1';
-                            s_state                 <= RECEIVE_DATA_LOW;
+                            txByte               <= 8x"00";
+                            startByteTransaction <= '1';
+                            s_state              <= RECEIVE_DATA_LOW;
                         end if;
                     when RECEIVE_DATA_LOW =>
                         if busyByteTransaction = '0' and startByteTransaction = '0' then
-                            txByte                  <= 8x"00";
-                            readData(7 downto 0)    <= rxByte; -- Read byte from last byte transaction
-                            startByteTransaction    <= '1';
-                            s_state                 <= RECEIVE_DATA_HIGH;
+                            txByte               <= 8x"00";
+                            readData(7 downto 0) <= rxByte; -- Read byte from last byte transaction
+                            startByteTransaction <= '1';
+                            s_state              <= RECEIVE_DATA_HIGH;
                         end if;
                     when RECEIVE_DATA_HIGH =>
                         if busyByteTransaction = '0' and startByteTransaction = '0' then
-                            txByte                  <= 8x"00";
-                            readData(15 downto 8)   <= rxByte; -- Read byte from last byte transaction
-                            startByteTransaction    <= '1';
-                            s_state                 <= RECEIVE_DATA_HIGHEST;
+                            txByte                <= 8x"00";
+                            readData(15 downto 8) <= rxByte; -- Read byte from last byte transaction
+                            startByteTransaction  <= '1';
+                            s_state               <= RECEIVE_DATA_HIGHEST;
                         end if;
                     when RECEIVE_DATA_HIGHEST =>
                         if busyByteTransaction = '0' and startByteTransaction = '0' then
-                            txByte                  <= 8x"00";
-                            readData(23 downto 16)  <= rxByte; -- Read byte from last byte transaction
-                            startByteTransaction    <= '1';
-                            s_state                 <= SEND_ACK;
+                            txByte                 <= 8x"00";
+                            readData(23 downto 16) <= rxByte; -- Read byte from last byte transaction
+                            startByteTransaction   <= '1';
+                            s_state                <= SEND_ACK;
                         end if;
                     when SEND_ACK =>
                         if busyByteTransaction = '0' and startByteTransaction = '0' then
-                            spiNCs                  <= '1';
-                            readData(31 downto 24)  <= rxByte; -- Read byte from last byte transaction
-                            s_state                 <= IDLE;
-                            readAck                 <= '1';
+                            spiNCs                 <= '1';
+                            readData(31 downto 24) <= rxByte; -- Read byte from last byte transaction
+                            s_state                <= IDLE;
+                            readAck                <= '1';
                         end if;
                     when others =>
                         -- Safe state fallback
