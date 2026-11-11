@@ -1,0 +1,180 @@
+--------------------------------------------------------------------------------
+--! @author Daniel Kropf
+--! @copyright MIT License
+--! @brief Protocol Controller for SPI Flash Execute-in-Place (XIP) reads.
+--!
+--! Sequences the read protocol for the MX25R3235F SPI Flash. It sends the 
+--! 0x03 read command, a 24-bit address, and retrieves 32 bits (4 bytes) of 
+--! data sequentially.
+--!
+--! It interfaces with the `spiByteTransceiver` block, which handles the physical 
+--! bit-shifting and spi clock generation.
+--------------------------------------------------------------------------------
+
+library ieee;
+use ieee.std_logic_1164.all;
+
+use work.spiXip_pkg.all;
+
+entity spiXipController is
+    generic ( 
+        --! Number of Data Bits. Only 32-bit data width is supported.
+        DataBits    : integer := 32;
+        --! Number of Address Bits. Only Flash address equal to 24 bits is supported.
+        AddrBits    : integer := C_FLASH_ADDR_WIDTH
+    );
+    port (
+        --! System clock domain
+        clock                   : in std_logic;
+        --! Active-high system reset
+        reset                   : in std_logic;
+
+        -- Interface from Bus
+        --! Flag to start a read transaction
+        startRead               : in  std_logic;
+        --! Address input (Flash address)
+        readAddress             : in  std_logic_vector( AddrBits-1 downto 0);
+        --! Data Out (read Flash data)
+        readData                : out std_logic_vector( DataBits-1 downto 0);
+        --! Read Acknowledge output (single-cycle pulse to complete read)
+        readAck                 : out std_logic;
+        
+        -- Interface to spiByteTransceiver
+        --! Command signal to trigger a byte transaction on the SPI master
+        startByteTransaction    : out std_logic;
+        --! Byte to send to the SPI master 
+        txByte                  : out std_logic_vector(7 downto 0);
+        --! Byte received back from the SPI master 
+        rxByte                  : in  std_logic_vector(7 downto 0);
+        --! Busy status flag from the SPI master 
+        busyByteTransaction     : in  std_logic;
+
+        -- External
+        --! Chip select control line for the Flash chip
+        spiNCs                  : out std_logic
+    );
+end entity spiXipController;
+
+architecture rtl of spiXipController is
+    --! Controller FSM States definition for reading from flash
+    type t_state is (
+        --! Wait on a new address to be read
+        IDLE,
+        --! Sends the read command to the flash
+        SEND_READ_CMD,
+        --! Sends Bits 23-16 of the 24-Bit address
+        SEND_ADDR_HIGH,
+        --! Sends Bits 15-8 of the 24-Bit address
+        SEND_ADDR_MID,
+        --! Sends Bits 7-0 of the 24-Bit address
+        SEND_ADDR_LOW,
+        --! Reads Bits 7-0 of the 32-Bit Data
+        RECEIVE_DATA_LOWEST,
+        --! Reads Bits 15-8 of the 32-Bit Data
+        RECEIVE_DATA_LOW,
+        --! Reads Bits 23-16 of the 32-Bit Data
+        RECEIVE_DATA_HIGH,
+        --! Reads Bits 31-24 of the 32-Bit Data
+        RECEIVE_DATA_HIGHEST,
+        --! Completes read and send ack
+        SEND_ACK
+    );
+    --! Current state register for the Controller FSM
+    signal s_state : t_state;
+begin
+    assert (DataBits = 32) 
+        report "spiXipController: Only 32-bit data width is currently supported." 
+        severity failure;
+      
+    assert (AddrBits = 24) 
+        report "spiXipController: Flash address must be 24 bits." 
+        severity failure;
+    
+    --! Executes the XIP protocol
+    Controller : process(clock)
+    begin
+        if rising_edge(clock) then
+            if reset then
+                s_state              <= IDLE;
+                startByteTransaction <= '0';
+                readAck              <= '0';
+                readData             <= (others => '0');
+                txByte               <= (others => '0');
+                spiNCs               <= '1';
+            else
+                -- Auto-clear
+                startByteTransaction <= '0'; 
+                readAck <= '0';
+
+                case s_state is 
+                    when IDLE =>
+                        if startRead then 
+                            s_state <= SEND_READ_CMD;
+                            spiNCs <= '0';
+                        end if;
+                    when SEND_READ_CMD =>
+                        if busyByteTransaction = '0' and startByteTransaction = '0' then
+                            txByte               <= 8x"03";
+                            startByteTransaction <= '1';
+                            s_state              <= SEND_ADDR_HIGH;
+                        end if;
+                    when SEND_ADDR_HIGH =>
+                        if busyByteTransaction = '0' and startByteTransaction = '0' then
+                            txByte               <= readAddress(23 downto 16);
+                            startByteTransaction <= '1';
+                            s_state              <= SEND_ADDR_MID;
+                        end if;
+                    when SEND_ADDR_MID =>
+                        if busyByteTransaction = '0' and startByteTransaction = '0' then
+                            txByte               <= readAddress(15 downto 8);
+                            startByteTransaction <= '1';
+                            s_state              <= SEND_ADDR_LOW;
+                        end if;
+                    when SEND_ADDR_LOW =>
+                        if busyByteTransaction = '0' and startByteTransaction = '0' then
+                            txByte               <= readAddress(7 downto 0);
+                            startByteTransaction <= '1';
+                            s_state              <= RECEIVE_DATA_LOWEST;
+                        end if;
+                    when RECEIVE_DATA_LOWEST =>
+                        if busyByteTransaction = '0' and startByteTransaction = '0' then
+                            txByte               <= 8x"00";
+                            startByteTransaction <= '1';
+                            s_state              <= RECEIVE_DATA_LOW;
+                        end if;
+                    when RECEIVE_DATA_LOW =>
+                        if busyByteTransaction = '0' and startByteTransaction = '0' then
+                            txByte               <= 8x"00";
+                            readData(7 downto 0) <= rxByte; -- Read byte from last byte transaction
+                            startByteTransaction <= '1';
+                            s_state              <= RECEIVE_DATA_HIGH;
+                        end if;
+                    when RECEIVE_DATA_HIGH =>
+                        if busyByteTransaction = '0' and startByteTransaction = '0' then
+                            txByte                <= 8x"00";
+                            readData(15 downto 8) <= rxByte; -- Read byte from last byte transaction
+                            startByteTransaction  <= '1';
+                            s_state               <= RECEIVE_DATA_HIGHEST;
+                        end if;
+                    when RECEIVE_DATA_HIGHEST =>
+                        if busyByteTransaction = '0' and startByteTransaction = '0' then
+                            txByte                 <= 8x"00";
+                            readData(23 downto 16) <= rxByte; -- Read byte from last byte transaction
+                            startByteTransaction   <= '1';
+                            s_state                <= SEND_ACK;
+                        end if;
+                    when SEND_ACK =>
+                        if busyByteTransaction = '0' and startByteTransaction = '0' then
+                            spiNCs                 <= '1';
+                            readData(31 downto 24) <= rxByte; -- Read byte from last byte transaction
+                            s_state                <= IDLE;
+                            readAck                <= '1';
+                        end if;
+                    when others =>
+                        -- Safe state fallback
+                        s_state <= IDLE;
+                end case;
+            end if;
+        end if;
+    end process;
+end architecture;
