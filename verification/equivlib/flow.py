@@ -31,6 +31,8 @@ class Plan:
     silver: Path                             # GHDL's Verilog netlist of the VHDL design
     script: Path                             # Yosys script file (equivalence.ys)
     script_text: str
+    smt2: Path                               # SMT2 model exported by Yosys
+    smtc: Path
     log: Path                                # Commands and output of GHDL and Yosys
     vcd: Path | None                         # Counterexample waveform, only written if the proof fails
     divergence: Path | None                  # Analysis of the counterexample (see vcddiff)
@@ -51,6 +53,8 @@ def plan(test: EquivTest, build_root: Path, dump_vcd: bool = False) -> Plan:
     ghdl_work = workdir / "ghdl-work"
     silver = workdir / f"{test.top}.v"
     script = workdir / "equivalence.ys"
+    smt2 = workdir / "equivalence.smt2"
+    smtc = workdir / "constraints.smtc"
     vcd = workdir / f"{test.top}_counterexample.vcd" if dump_vcd else None
     divergence = workdir / f"{test.top}_divergence.txt" if dump_vcd else None
 
@@ -75,8 +79,8 @@ def plan(test: EquivTest, build_root: Path, dump_vcd: bool = False) -> Plan:
                  *map(str, vhdl), "-e", test.top]
 
     return Plan(test=test, workdir=workdir, ghdl_args=ghdl_args, vhdl_override=override, silver=silver,
-                script=script, script_text=_yosys_script(test, silver, script, vcd),
-                log=workdir / f"{test.top}.log", vcd=vcd, divergence=divergence)
+                script=script, script_text=_yosys_script(test, silver, script, smt2, vcd),
+                smt2=smt2, smtc=smtc, log=workdir / f"{test.top}.log", vcd=vcd, divergence=divergence)
 
 
 def execute(plan: Plan, toolchain: Toolchain, timeout: float | None) -> str:
@@ -113,14 +117,33 @@ def execute(plan: Plan, toolchain: Toolchain, timeout: float | None) -> str:
                 for vhdl_name, _ in plan.test.blackbox_instances:
                     if vhdl_name not in present:
                         log.write(f"note: blackboxed instance '{vhdl_name}' does not exist in this configuration\n")
-                plan.script_text = _yosys_script(plan.test, plan.silver, plan.script, plan.vcd, present)
+                plan.script_text = _yosys_script(plan.test, plan.silver, plan.script, plan.smt2, plan.vcd, present)
             plan.script.write_text(plan.script_text)
             log.write(f"\n$ {shlex.join(yosys)}\n")
             log.flush()
             code = _run(yosys, toolchain, plan.workdir, log, log, deadline).returncode
             if code < 0:
                 return _killed(log, "yosys", code)
-            # Yosys exits with an error if 'sat -verify' finds a counterexample (or on any other error)
+            if code > 0:
+                return "yosys-failed" # Yosys crashed during elaboration/export
+
+            # --- SMT-BMC STEP (Solve) ---
+            # Replace 'boolector' with 'z3' or 'yices' if needed
+            smtbmc = ["yosys-smtbmc", "-s", "boolector", "-t", str(plan.test.sat_cycles)]
+
+            _write_smtc_file(plan.test, plan.smtc)
+            if plan.smtc.exists():
+                smtbmc.extend(["--smtc", str(plan.smtc)])
+
+            if plan.vcd:
+                smtbmc.extend(["--dump-vcd", str(plan.vcd)])
+            smtbmc.append(str(plan.smt2))
+
+            log.write(f"\n$ {shlex.join(smtbmc)}\n")
+            log.flush()
+            code = _run(smtbmc, toolchain, plan.workdir, log, log, deadline).returncode
+            if code < 0:
+                return _killed(log, "yosys-smtbmc", code)
             if code > 0:
                 _analyze_counterexample(plan, log)
                 return "equivalence-failed"
@@ -227,7 +250,7 @@ def _blackbox_commands(test: EquivTest, design: str, present: set[str] | None) -
     return commands
 
 
-def _yosys_script(test: EquivTest, silver: Path, script: Path, vcd: Path | None,
+def _yosys_script(test: EquivTest, silver: Path, script: Path, smt2: Path, vcd: Path | None,
                   present: set[str] | None = None) -> str:
     """Return the Yosys script that proves the equivalence of the VHDL and Verilog designs."""
     include = "".join(f"-I{d} " for d in test.include)
@@ -264,9 +287,11 @@ def _yosys_script(test: EquivTest, silver: Path, script: Path, vcd: Path | None,
         "equiv_make -make_assert gold silver equiv",
         "prep -top equiv",
         "async2sync; opt",
-        # Blackboxes have no definition, so the SAT solver must not fail on unknown cells
-        "sat " + ("-ignore-unknown-cells " if test.blackbox else "")
-        + f"-seq {test.sat_cycles} -verify -prove-asserts -set-init-zero {show_options}{reset}",
+        # TODO delete: # Blackboxes have no definition, so the SAT solver must not fail on unknown cells
+        # TODO delete: "sat " + ("-ignore-unknown-cells " if test.blackbox else "")
+        # TODO delete: + f"-seq {test.sat_cycles} -verify -prove-asserts -set-init-zero {show_options}{reset}",
+        "setuunknown -anyseq -zero",
+        f"write_smt2 -wires {smt2}",
     ]
     return "\n".join(lines) + "\n"
 
@@ -331,3 +356,25 @@ def _override_generic_default(source: str, entity: str, name: str, value: str) -
     if assign is None:
         return f"{source[:end]} := {value}{source[end:]}"
     return f"{source[:assign]}:= {value}{source[end:]}"
+
+def _write_smtc_file(test: EquivTest, smtc_path: Path):
+    """Translate the test.reset dictionary into a yosys-smtbmc constraint file."""
+    if not test.reset:
+        return # If no reset is defined for this module, do nothing.
+
+    lines = []
+    # test.reset looks like {"rst_n": [0, 1]}
+    for signal, values in test.reset.items():
+        for step, value in enumerate(values):
+            # yosys-smtbmc steps are 0-indexed. 
+            if step == 0:
+                lines.append("initial")
+            else:
+                lines.append(f"always {step}")
+            
+            # #b0 and #b1 are SMT bit-vector literals
+            smt_val = "#b1" if value else "#b0"
+            lines.append(f"assume (= [{signal}] {smt_val})")
+            
+    if lines:
+        smtc_path.write_text("\n".join(lines) + "\n")
