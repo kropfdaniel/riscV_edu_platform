@@ -79,8 +79,8 @@ begin
     s_leadingEdge  <= clkDivTick and not(s_baseClk);
     s_trailingEdge <= clkDivTick and     s_baseClk;
 
-    s_shiftEn  <= (s_leadingEdge  and not(cpha) ) or (s_trailingEdge and cpha); 
-    s_sampleEn <= (s_trailingEdge and not(cpha) ) or (s_leadingEdge  and cpha); 
+    s_sampleEn <= (s_leadingEdge  and not(cpha) ) or (s_trailingEdge and cpha); 
+    s_shiftEn  <= (s_trailingEdge and not(cpha) ) or (s_leadingEdge  and cpha); 
 
     spiClk  <= s_baseClk xor CPOL;
 
@@ -111,7 +111,7 @@ begin
                         s_miSoSampledReg <= spiMiSo;
                     end if;
 
-                    if s_shiftEn then 
+                    if s_shiftEn = '1' and not(cpha = '1' and s_bitCounter = 7) then -- if cpha=1 skip the first shift as the miso pin is already correct
                         if lsbf then
                             -- shift right, miso feeds into MSB
                             s_shiftReg <= s_miSoSampledReg & s_shiftReg(7 downto 1);
@@ -124,6 +124,15 @@ begin
                     if s_trailingEdge then
                         if s_bitCounter = 0 then
                             busyByteTransaction <= '0';
+
+                            -- CPHA=1: Shift the final bit directly from the MISO pin
+                            if cpha = '1' then
+                                if lsbf = '1' then
+                                    s_shiftReg <= spiMiSo & s_shiftReg(7 downto 1);
+                                else
+                                    s_shiftReg <= s_shiftReg(6 downto 0) & spiMiSo;
+                                end if;
+                            end if;
                         else 
                             s_bitCounter <= s_bitCounter - 1;
                         end if;
