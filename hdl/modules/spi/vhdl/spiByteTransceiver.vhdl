@@ -58,6 +58,8 @@ end entity spiByteTransceiver;
 architecture rtl of spiByteTransceiver is
     --! Shift register holding outgoing transmission data and accumulating incoming received data
     signal s_shiftReg       : std_logic_vector(7 downto 0);
+    --! Register to hold the mosi signal
+    signal s_mosiReg        : std_logic;
     --! Bit counter tracking data bits remaining (counts down from 7 to 0)
     signal s_bitCounter     : unsigned(2 downto 0);
     --! Internal clock, always idles at '0'
@@ -73,8 +75,8 @@ architecture rtl of spiByteTransceiver is
     --! stores the sampleded Miso signal
     signal s_miSoSampledReg : std_logic;
 begin
-    spiMoSi <= s_shiftReg(0) when lsbf else s_shiftReg(7); -- Shift out MSB or LSB
-    rxByte  <= s_shiftReg;    -- After transaction s_shiftReg holds the received data.
+    spiMoSi <= s_mosiReg;
+    rxByte  <= s_shiftReg; -- After transaction s_shiftReg holds the received data.
 
     s_leadingEdge  <= clkDivTick and not(s_baseClk);
     s_trailingEdge <= clkDivTick and     s_baseClk;
@@ -91,6 +93,7 @@ begin
             if reset then
                 busyByteTransaction <= '0';
                 s_baseClk           <= '0';
+                s_mosiReg           <= '0';
                 s_shiftReg          <= (others => '0');
                 s_bitCounter        <= (others => '0');
             else
@@ -101,38 +104,42 @@ begin
                         busyByteTransaction <= '1';
                         s_bitCounter        <= to_unsigned(7, 3);
                         s_shiftReg          <= txByte;
+
+                        -- Pre-load the MOSI output register with the first bit
+                        if lsbf = '1' then
+                            s_mosiReg <= txByte(0);
+                        else
+                            s_mosiReg <= txByte(7);
+                        end if;
                     end if;
                 else 
                     if clkDivTick then
                         s_baseClk <= not(s_baseClk);
                     end if;
 
+                    -- Sample Edge: Shift the core register and pull in MiSo
                     if s_sampleEn then
-                        s_miSoSampledReg <= spiMiSo;
+                        if lsbf then
+                            s_shiftReg <= spiMiSo & s_shiftReg(7 downto 1);
+                        else
+                            s_shiftReg <= s_shiftReg(6 downto 0) & spiMiSo;
+                        end if;
                     end if;
 
-                    if s_shiftEn = '1' and not(cpha = '1' and s_bitCounter = 7) then -- if cpha=1 skip the first shift as the miso pin is already correct
+                    -- Shift Edge: Update the MOSI output pin
+                    if s_shiftEn then 
                         if lsbf then
                             -- shift right, miso feeds into MSB
-                            s_shiftReg <= s_miSoSampledReg & s_shiftReg(7 downto 1);
+                            s_mosiReg <= s_shiftReg(0);
                         else
                             -- shift left, miso feeds into LSB
-                            s_shiftReg <= s_shiftReg(6 downto 0) & s_miSoSampledReg;
+                            s_mosiReg <= s_shiftReg(7);
                         end if;
                     end if;
 
                     if s_trailingEdge then
                         if s_bitCounter = 0 then
                             busyByteTransaction <= '0';
-
-                            -- CPHA=1: Shift the final bit directly from the MISO pin
-                            if cpha = '1' then
-                                if lsbf = '1' then
-                                    s_shiftReg <= spiMiSo & s_shiftReg(7 downto 1);
-                                else
-                                    s_shiftReg <= s_shiftReg(6 downto 0) & spiMiSo;
-                                end if;
-                            end if;
                         else 
                             s_bitCounter <= s_bitCounter - 1;
                         end if;

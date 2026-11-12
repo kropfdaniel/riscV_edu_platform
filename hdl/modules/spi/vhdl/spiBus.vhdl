@@ -50,20 +50,20 @@ entity spiBus is
     port (
         -- Wishbone Signals
         --! clock input
-        CLK_I       : in std_logic;
+        CLK_I       : in  std_logic;
         --! reset input
-        RST_I       : in std_logic;
+        RST_I       : in  std_logic;
         --! data input
-        DAT_I       : in std_logic_vector(DataBits-1 downto 0)
+        DAT_I       : in  std_logic_vector(DataBits-1 downto 0);
         --! data output
         DAT_O       : out std_logic_vector(DataBits-1 downto 0);
         -- TAGD_I and TAGD_O are not implemented
         --! acknowledge output
         ACK_O       : out std_logic;
         --! address input
-        ADDR_I      : in std_logic_vector(AddrBits-1 downto 0);
+        ADDR_I      : in  std_logic_vector(AddrBits-1 downto 0);
         --! cycle input
-        CYC_I       : in std_logic;
+        CYC_I       : in  std_logic;
         --! error output
         ERR_O       : out std_logic;
         -- LOCK_I is not used in this module
@@ -71,12 +71,12 @@ entity spiBus is
         --! select input
         SEL_I       : in  std_logic_vector((DataBits/8)-1 downto 0);
         --! strobe input
-        STB_I       : in std_logic;
+        STB_I       : in  std_logic;
         -- TGA_O and TGC_O are not implemented
         --! write enable input
-        WE_I        : in std_logic;
+        WE_I        : in  std_logic;
         --! Cycle type input. Only Classic cycle type "000" supported.
-        CTI_I       : in std_logic_vector(2 downto 0);
+        CTI_I       : in  std_logic_vector(2 downto 0);
         -- BTE_I is not used in this module
 
         -- External
@@ -104,7 +104,7 @@ architecture platformIndependent of spiBus is
     --! Asserts for exactly one clock cycle before the Wishbone ACK to prevent duplicate register writes.
     signal s_we                   : std_logic;
     --! index Register. Indexes the different SPI registers
-    signal s_spiRegisterindex     : std_logic_vector(1 downto 0);
+    signal s_spiRegisterIndex     : std_logic_vector(1 downto 0);
 
     --! flag if CYC_I and STB_I are set and the address on the bus is within the address space for this module
     signal s_isMyTransaction      : std_logic;
@@ -156,7 +156,7 @@ begin
     s_isCorrectTransaction <= s_isMyTransaction when CTI_I = "000" else '0'; 
 
     s_we <= not(s_ackReg) and s_isCorrectTransaction and WE_I;
-    s_spiRegisterindex <= ADDR_I(3 downto 2);
+    s_spiRegisterIndex <= ADDR_I(3 downto 2);
 
     --! Wishbone interface process
     makeBusRegs : process(CLK_I)
@@ -183,11 +183,11 @@ begin
                 s_cpolReg   <= '0';
                 s_spiEnReg  <= '0';
                 s_txByteReg <= (others => '0');
-                s_nCsReg    <= (others => '0');
+                s_nCsReg    <= "11"; -- chip selects lines are high after reset
             else
                 s_startSpiTransaction <= '0'; -- auto disable 
                 if s_we = '1' and s_spiBusy = '0' then
-                    case s_spiRegisterindex is
+                    case s_spiRegisterIndex is
                         when "00" => -- 0x00: SPI_CR
                             -- Byte 0: Configuration Bits
                             if SEL_I(0) = '1' then
@@ -230,7 +230,7 @@ begin
     begin
         DAT_O <= (others => '0'); -- Default to zeros for unmapped bits
         
-        case s_spiRegisterindex is
+        case s_spiRegisterIndex is
             when "00" => -- 0x00: SPI_CR
                 DAT_O(31 downto 16) <= s_clkDivReg;
                 DAT_O(3)            <= s_lsbfReg;
@@ -257,7 +257,7 @@ begin
                 s_clkDivCounterReg <= to_unsigned(0, c_clkDivBits);
                 s_clkDivTickReg    <= '0';
             else
-                if s_clkDivCounterReg = s_clkDivReg then
+                if s_clkDivCounterReg = unsigned(s_clkDivReg) then
                     s_clkDivCounterReg <= to_unsigned(0, c_clkDivBits);
                     s_clkDivTickReg    <= '1';
                 else
