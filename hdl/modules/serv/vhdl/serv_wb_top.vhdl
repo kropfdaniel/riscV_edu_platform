@@ -1,4 +1,4 @@
--- File: serv_system_top.vhdl
+-- File: serv_wb_top.vhdl
 -- Author: Daniel Kropf
 -- License: MIT License
 -- 
@@ -11,7 +11,7 @@ use ieee.numeric_std.all;
 
 use work.serv_pkg.all;
 
-entity serv_system_top is
+entity serv_wb_top is
     generic(
         DataBits     : integer := 32;  -- only 32 bit supported
         AddrBits     : integer := 32;  -- only 32 bit supported
@@ -63,9 +63,9 @@ entity serv_system_top is
         -- External
         reset_vec    : in std_logic_vector(AddrBits-1 downto 0)
     );
-end entity serv_system_top;
+end entity serv_wb_top;
 
-architecture rtl of serv_system_top is
+architecture rtl of serv_wb_top is
     signal serv_dbus_adr, serv_ibus_adr  : std_logic_vector(AddrBits-1 downto 0);
     signal serv_dbus_dat, serv_dbus_rdt, serv_ibus_rdt : std_logic_vector(DataBits-1 downto 0);
     signal serv_dbus_sel : std_logic_vector( (DataBits/8)-1 downto 0);
@@ -74,11 +74,11 @@ architecture rtl of serv_system_top is
     signal serv_dbus_ack, serv_ibus_ack : std_logic;
 begin
     assert (AddrBits = 32)
-        report "serv_system_top PARAMETER ERROR: AddrBits must be exactly 32."
+        report "serv_wb_top PARAMETER ERROR: AddrBits must be exactly 32."
         severity failure;
 
     assert (DataBits = 32)
-        report "serv_system_top PARAMETER ERROR: DataBits must be exactly 32."
+        report "serv_wb_top PARAMETER ERROR: DataBits must be exactly 32."
         severity failure;
     
     serv_with_rf : entity work.serv_rf_top(rtl)

@@ -88,8 +88,8 @@ verilog = ["servile_arbiter.v"]
 
 [filesets.system_top]
 use     = ["rf_top", "arbiter"]
-vhdl    = ["serv_system_top.vhdl"]
-verilog = ["serv_system_top.v"]
+vhdl    = ["serv_wb_top.vhdl"]
+verilog = ["serv_wb_top.v"]
 
 
 [[test]]
@@ -311,7 +311,7 @@ use   = ["arbiter"]
 sat_cycles = 2
 
 [[test]]
-name  = "serv_system_top"
+name  = "serv_wb_top"
 use   = ["system_top"]
 reset = { RST_I = [1, 0] }
 sat_cycles = 33
@@ -333,8 +333,8 @@ PRE_REGISTER = [false, true]
 COMPRESSED = [false, true]
 
 [[test]]
-name  = "serv_system_top_blackbox"
-top   = "serv_system_top"
+name  = "serv_wb_top_blackbox"
+top   = "serv_wb_top"
 use   = ["system_top"]
 reset = { RST_I = [1, 0] }
 sat_cycles = 3

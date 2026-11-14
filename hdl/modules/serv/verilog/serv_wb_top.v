@@ -1,4 +1,4 @@
-/* File: serv_system_top.vhdl
+/* File: serv_wb_top.vhdl
  * Author: Daniel Kropf
  * License: MIT License
  * 
@@ -6,7 +6,7 @@
  * *********************************************
  */
 
-module serv_system_top
+module serv_wb_top
     #(
         parameter DataBits = 32, // only 32 bit supported
         parameter AddrBits = 32, // only 32 bit supported
