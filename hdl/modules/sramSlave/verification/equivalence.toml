@@ -22,9 +22,13 @@ use   = ["sramSlave", "singlePortBlockRam"]
 sat_cycles = 20
 reset = { RST_I = [1, 0] }
 blackbox_instances = ["singlePortBlockRam"]
+[test.basic]
+nrOfEntriesInBytes = 1024
 
 [[test]]
 name  = "sramSlave"
 use   = ["sramSlave", "singlePortBlockRam"]
 sat_cycles = 20
 reset = { RST_I = [1, 0] }
+[test.basic]
+nrOfEntriesInBytes = 1024

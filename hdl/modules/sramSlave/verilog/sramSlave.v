@@ -32,6 +32,7 @@ module sramSlave
   reg [1:0] s_stateReg, s_stateNext;
   wire [3:0] s_byteWe = (WE_I == 1'b1 && STB_I == 1'b1 && s_isCorrectTransaction == 1'b1) ? SEL_I : 4'd0;
   wire [nrOfBusAddressBits-3:0] s_ramAddress = ADDR_I[nrOfBusAddressBits-1:2];
+  wire s_nClock = ~CLK_I;
   
   assign ERR_O = (s_stateReg == ERROR) ? STB_I & CYC_I : 1'b0;
   assign ACK_O = ((s_stateReg == BURST && s_isCorrectTransaction == 1'b1) || s_stateReg == SINGLE) ? STB_I & CYC_I : 1'b0;
@@ -54,7 +55,7 @@ module sramSlave
   
   singlePortBlockRam #(.nrOfAddressBits(nrOfBusAddressBits-2),
                        .nrOfDataBits(8)) byte0
-                      (.clock(CLK_I),
+                      (.clock(s_nClock),
                        .writeEnable(s_byteWe[0]),
                        .address(s_ramAddress),
                        .dataIn(DAT_I[7:0]),
@@ -62,7 +63,7 @@ module sramSlave
 
   singlePortBlockRam #(.nrOfAddressBits(nrOfBusAddressBits-2),
                        .nrOfDataBits(8)) byte1
-                      (.clock(CLK_I),
+                      (.clock(s_nClock),
                        .writeEnable(s_byteWe[1]),
                        .address(s_ramAddress),
                        .dataIn(DAT_I[15:8]),
@@ -70,7 +71,7 @@ module sramSlave
 
   singlePortBlockRam #(.nrOfAddressBits(nrOfBusAddressBits-2),
                        .nrOfDataBits(8)) byte2
-                      (.clock(CLK_I),
+                      (.clock(s_nClock),
                        .writeEnable(s_byteWe[2]),
                        .address(s_ramAddress),
                        .dataIn(DAT_I[23:16]),
@@ -78,7 +79,7 @@ module sramSlave
 
   singlePortBlockRam #(.nrOfAddressBits(nrOfBusAddressBits-2),
                        .nrOfDataBits(8)) byte3
-                      (.clock(CLK_I),
+                      (.clock(s_nClock),
                        .writeEnable(s_byteWe[3]),
                        .address(s_ramAddress),
                        .dataIn(DAT_I[31:24]),

@@ -52,7 +52,7 @@ begin
                      elsif (s_isCorrectTransaction = '1') then s_stateNext <= BURST;
                      else s_stateNext <= IDLE;
                      end if;
-      when BURST  => if (s_isMyTransaction = '0' and CYC_I = '1' and STB_I = '1') then s_stateNext <= BUSERROR;
+      when BURST  => if (s_isCorrectTransaction = '0' and CYC_I = '1' and STB_I = '1') then s_stateNext <= BUSERROR;
                      elsif (CTI_I = "111" or CYC_I = '0') then s_stateNext <= IDLE;
                      else s_stateNext <= BURST;
                      end if;
