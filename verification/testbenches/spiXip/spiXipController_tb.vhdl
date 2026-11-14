@@ -27,7 +27,7 @@ architecture sim of tb_spiXipController is
     signal readData  : std_logic_vector(31 downto 0);
     signal readAck   : std_logic;
     
-    -- Interface to spiByteTransceiver
+    -- Interface to spiXipByteTransceiver
     signal startByte : std_logic;
     signal txByte    : std_logic_vector(7 downto 0);
     signal rxByte    : std_logic_vector(7 downto 0) := (others => '0');

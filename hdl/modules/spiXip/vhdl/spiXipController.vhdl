@@ -7,7 +7,7 @@
 --! 0x03 read command, a 24-bit address, and retrieves 32 bits (4 bytes) of 
 --! data sequentially.
 --!
---! It interfaces with the `spiByteTransceiver` block, which handles the physical 
+--! It interfaces with the `spiXipByteTransceiver` block, which handles the physical 
 --! bit-shifting and spi clock generation.
 --------------------------------------------------------------------------------
 
@@ -39,7 +39,7 @@ entity spiXipController is
         --! Read Acknowledge output (single-cycle pulse to complete read)
         readAck                 : out std_logic;
         
-        -- Interface to spiByteTransceiver
+        -- Interface to spiXipByteTransceiver
         --! Command signal to trigger a byte transaction on the SPI master
         startByteTransaction    : out std_logic;
         --! Byte to send to the SPI master 
