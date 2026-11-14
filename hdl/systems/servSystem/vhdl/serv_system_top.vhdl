@@ -6,13 +6,24 @@ entity system_top is
   port (
     clock       : in  std_logic; -- 50MHz
     n_reset     : in  std_logic;
+
+    -- SPI
+    spiNCs      : out std_logic_vector(1 downto 0);
+    spiClk      : out std_logic;
+    spiMoSi     : out std_logic;
+    spiMiSo     : in  std_logic;
+
     -- External SPI Flash Pins
     spiXipNCs   : out std_logic;
     spiXipClk   : out std_logic;
     spiXipMoSi  : out std_logic;
     spiXipMiSo  : in  std_logic;
     flashWpN    : out std_logic;
-    flashResetN : out std_logic
+    flashResetN : out std_logic;
+
+    -- UART
+    RxD         : in  std_logic;
+    TxD         : out std_logic
   );
 end entity system_top;
 
@@ -32,41 +43,32 @@ architecture rtl of system_top is
     signal s_serv_system_top_ACK_I : std_logic;
     signal s_serv_system_top_ADDR_O : std_logic_vector((AddrBits - 1) downto 0);
     signal s_serv_system_top_CYC_O : std_logic;
-    signal s_serv_system_top_ERR_I : std_logic;
-    signal s_serv_system_top_LOCK_O : std_logic;
     signal s_serv_system_top_SEL_O : std_logic_vector(((DataBits / 8) - 1) downto 0);
     signal s_serv_system_top_STB_O : std_logic;
     signal s_serv_system_top_WE_O : std_logic;
-    signal s_serv_system_top_CTI_O : std_logic_vector(2 downto 0);
-    signal s_serv_system_top_BTE_O : std_logic_vector(1 downto 0);
     signal s_spiXipBus_CLK_I : std_logic;
     signal s_spiXipBus_RST_I : std_logic;
-    signal s_spiXipBus_DAT_I : std_logic_vector((DataBits - 1) downto 0);
     signal s_spiXipBus_DAT_O : std_logic_vector((DataBits - 1) downto 0);
     signal s_spiXipBus_ACK_O : std_logic;
     signal s_spiXipBus_ADDR_I : std_logic_vector((AddrBits - 1) downto 0);
     signal s_spiXipBus_CYC_I : std_logic;
     signal s_spiXipBus_ERR_O : std_logic;
-    signal s_spiXipBus_LOCK_I : std_logic;
-    signal s_spiXipBus_SEL_I : std_logic_vector(((DataBits / 8) - 1) downto 0);
     signal s_spiXipBus_STB_I : std_logic;
     signal s_spiXipBus_WE_I : std_logic;
     signal s_spiXipBus_CTI_I : std_logic_vector(2 downto 0);
-    signal s_spiXipBus_BTE_I : std_logic_vector(1 downto 0);
-    signal s_srramSlave_CLK_I : std_logic;
-    signal s_srramSlave_RST_I : std_logic;
-    signal s_srramSlave_DAT_I : std_logic_vector((DataBits - 1) downto 0);
-    signal s_srramSlave_DAT_O : std_logic_vector((DataBits - 1) downto 0);
-    signal s_srramSlave_ACK_O : std_logic;
-    signal s_srramSlave_ADDR_I : std_logic_vector((AddrBits - 1) downto 0);
-    signal s_srramSlave_CYC_I : std_logic;
-    signal s_srramSlave_ERR_O : std_logic;
-    signal s_srramSlave_LOCK_I : std_logic;
-    signal s_srramSlave_SEL_I : std_logic_vector(((DataBits / 8) - 1) downto 0);
-    signal s_srramSlave_STB_I : std_logic;
-    signal s_srramSlave_WE_I : std_logic;
-    signal s_srramSlave_CTI_I : std_logic_vector(2 downto 0);
-    signal s_srramSlave_BTE_I : std_logic_vector(1 downto 0);
+    signal s_sramSlave_CLK_I : std_logic;
+    signal s_sramSlave_RST_I : std_logic;
+    signal s_sramSlave_DAT_I : std_logic_vector((DataBits - 1) downto 0);
+    signal s_sramSlave_DAT_O : std_logic_vector((DataBits - 1) downto 0);
+    signal s_sramSlave_ACK_O : std_logic;
+    signal s_sramSlave_ADDR_I : std_logic_vector((AddrBits - 1) downto 0);
+    signal s_sramSlave_CYC_I : std_logic;
+    signal s_sramSlave_ERR_O : std_logic;
+    signal s_sramSlave_SEL_I : std_logic_vector(((DataBits / 8) - 1) downto 0);
+    signal s_sramSlave_STB_I : std_logic;
+    signal s_sramSlave_WE_I : std_logic;
+    signal s_sramSlave_CTI_I : std_logic_vector(2 downto 0);
+    signal s_sramSlave_BTE_I : std_logic_vector(1 downto 0);
     signal s_spiBus_CLK_I : std_logic;
     signal s_spiBus_RST_I : std_logic;
     signal s_spiBus_DAT_I : std_logic_vector((DataBits - 1) downto 0);
@@ -75,12 +77,10 @@ architecture rtl of system_top is
     signal s_spiBus_ADDR_I : std_logic_vector((AddrBits - 1) downto 0);
     signal s_spiBus_CYC_I : std_logic;
     signal s_spiBus_ERR_O : std_logic;
-    signal s_spiBus_LOCK_I : std_logic;
     signal s_spiBus_SEL_I : std_logic_vector(((DataBits / 8) - 1) downto 0);
     signal s_spiBus_STB_I : std_logic;
     signal s_spiBus_WE_I : std_logic;
     signal s_spiBus_CTI_I : std_logic_vector(2 downto 0);
-    signal s_spiBus_BTE_I : std_logic_vector(1 downto 0);
     signal s_uartBus_CLK_I : std_logic;
     signal s_uartBus_RST_I : std_logic;
     signal s_uartBus_DAT_I : std_logic_vector((DataBits - 1) downto 0);
@@ -89,30 +89,27 @@ architecture rtl of system_top is
     signal s_uartBus_ADDR_I : std_logic_vector((AddrBits - 1) downto 0);
     signal s_uartBus_CYC_I : std_logic;
     signal s_uartBus_ERR_O : std_logic;
-    signal s_uartBus_LOCK_I : std_logic;
     signal s_uartBus_SEL_I : std_logic_vector(((DataBits / 8) - 1) downto 0);
     signal s_uartBus_STB_I : std_logic;
     signal s_uartBus_WE_I : std_logic;
     signal s_uartBus_CTI_I : std_logic_vector(2 downto 0);
-    signal s_uartBus_BTE_I : std_logic_vector(1 downto 0);
     signal s_picBus_CLK_I : std_logic;
     signal s_picBus_RST_I : std_logic;
-    signal s_picBus_DAT_I : std_logic_vector((DataBits - 1) downto 0);
     signal s_picBus_DAT_O : std_logic_vector((DataBits - 1) downto 0);
     signal s_picBus_ACK_O : std_logic;
     signal s_picBus_ADDR_I : std_logic_vector((AddrBits - 1) downto 0);
     signal s_picBus_CYC_I : std_logic;
     signal s_picBus_ERR_O : std_logic;
-    signal s_picBus_LOCK_I : std_logic;
-    signal s_picBus_SEL_I : std_logic_vector(((DataBits / 8) - 1) downto 0);
     signal s_picBus_STB_I : std_logic;
     signal s_picBus_WE_I : std_logic;
     signal s_picBus_CTI_I : std_logic_vector(2 downto 0);
-    signal s_picBus_BTE_I : std_logic_vector(1 downto 0);
     signal s_SYSCON_CLK_O : std_logic;
     signal s_SYSCON_RST_O : std_logic;
 
     signal s_reset : std_logic_vector(3 downto 0);
+
+    signal s_uart_irq : std_logic;
+    signal s_total_irq : std_logic;
 begin
     s_SYSCON_CLK_O <= clock;
     s_SYSCON_RST_O <= not n_reset;
@@ -142,7 +139,7 @@ begin
         STB_O => s_serv_system_top_STB_O,
         WE_O => s_serv_system_top_WE_O,
         
-        i_timer_irq => '0',
+        i_timer_irq => s_total_irq,
         o_ext_rs1 => open,
         o_ext_rs2 => open,
         o_ext_funct3 => open,
@@ -169,40 +166,41 @@ begin
         WE_I => s_spiXipBus_WE_I,
         CTI_I => s_spiXipBus_CTI_I,
 
-        spiNCs      => spiNCs,
-        spiClk      => spiClk,
-        spiMoSi     => spiMoSi,
-        spiMiSo     => spiMiSo,
+        spiNCs      => spiXipNCs,
+        spiClk      => spiXipClk,
+        spiMoSi     => spiXipMoSi,
+        spiMiSo     => spiXipMiSo,
         flashWpN    => flashWpN,
         flashResetN => flashResetN   
     );
 
-    busSlave_srramSlave : entity work.srramSlave(yourImplementation)
+    busSlave_sramSlave : entity work.sramSlave(platformIndependent)
   generic map (
     BaseAddress => std_logic_vector(to_unsigned(16#40000000#, AddrBits)),
     AddrBits => AddrBits,
-    DataBits => DataBits)
+    DataBits => DataBits,
+    nrOfEntriesInBytes => 4*1024) -- 4kB
   port map (
-    CLK_I => s_srramSlave_CLK_I,
-    RST_I => s_srramSlave_RST_I,
-    DAT_I => s_srramSlave_DAT_I,
-    DAT_O => s_srramSlave_DAT_O,
-    ACK_O => s_srramSlave_ACK_O,
-    ADDR_I => s_srramSlave_ADDR_I,
-    CYC_I => s_srramSlave_CYC_I,
-    ERR_O => s_srramSlave_ERR_O,
-    LOCK_I => s_srramSlave_LOCK_I,
-    SEL_I => s_srramSlave_SEL_I,
-    STB_I => s_srramSlave_STB_I,
-    WE_I => s_srramSlave_WE_I,
-    CTI_I => s_srramSlave_CTI_I,
-    BTE_I => s_srramSlave_BTE_I);
+    CLK_I => s_sramSlave_CLK_I,
+    RST_I => s_sramSlave_RST_I,
+    DAT_I => s_sramSlave_DAT_I,
+    DAT_O => s_sramSlave_DAT_O,
+    ACK_O => s_sramSlave_ACK_O,
+    ADDR_I => s_sramSlave_ADDR_I,
+    CYC_I => s_sramSlave_CYC_I,
+    ERR_O => s_sramSlave_ERR_O,
+    SEL_I => s_sramSlave_SEL_I,
+    STB_I => s_sramSlave_STB_I,
+    WE_I => s_sramSlave_WE_I,
+    CTI_I => s_sramSlave_CTI_I,
+    BTE_I => s_sramSlave_BTE_I);
 
-  busSlave_spiBus : entity work.spiBus(yourImplementation)
+  busSlave_spiBus : entity work.spiBus(platformIndependent)
   generic map (
     BaseAddress => std_logic_vector(to_unsigned(16#80000000#, AddrBits)),
     AddrBits => AddrBits,
-    DataBits => DataBits)
+    DataBits => DataBits,
+    NrOfCS => 2)
   port map (
     CLK_I => s_spiBus_CLK_I,
     RST_I => s_spiBus_RST_I,
@@ -212,14 +210,16 @@ begin
     ADDR_I => s_spiBus_ADDR_I,
     CYC_I => s_spiBus_CYC_I,
     ERR_O => s_spiBus_ERR_O,
-    LOCK_I => s_spiBus_LOCK_I,
     SEL_I => s_spiBus_SEL_I,
     STB_I => s_spiBus_STB_I,
     WE_I => s_spiBus_WE_I,
     CTI_I => s_spiBus_CTI_I,
-    BTE_I => s_spiBus_BTE_I);
+    spiNCs => spiNCs,
+    spiClk => spiClk,
+    spiMosi => spiMosi,
+    spiMiso => spiMiso);
 
-  busSlave_uartBus : entity work.uartBus(yourImplementation)
+  busSlave_uartBus : entity work.uartBus(platformIndependent)
   generic map (
     BaseAddress => std_logic_vector(to_unsigned(16#80000100#, AddrBits)),
     AddrBits => AddrBits,
@@ -233,14 +233,16 @@ begin
     ADDR_I => s_uartBus_ADDR_I,
     CYC_I => s_uartBus_CYC_I,
     ERR_O => s_uartBus_ERR_O,
-    LOCK_I => s_uartBus_LOCK_I,
     SEL_I => s_uartBus_SEL_I,
     STB_I => s_uartBus_STB_I,
     WE_I => s_uartBus_WE_I,
     CTI_I => s_uartBus_CTI_I,
-    BTE_I => s_uartBus_BTE_I);
+    clock50MHz => s_uartBus_CLK_I,
+    irq => s_uart_irq,
+    RxD => RxD,
+    TxD => TxD);
 
-  busSlave_picBus : entity work.picBus(yourImplementation)
+  busSlave_picBus : entity work.picBus(platformIndependent)
   generic map (
     BaseAddress => std_logic_vector(to_unsigned(16#80000200#, AddrBits)),
     AddrBits => AddrBits,
@@ -248,18 +250,17 @@ begin
   port map (
     CLK_I => s_picBus_CLK_I,
     RST_I => s_picBus_RST_I,
-    DAT_I => s_picBus_DAT_I,
     DAT_O => s_picBus_DAT_O,
     ACK_O => s_picBus_ACK_O,
     ADDR_I => s_picBus_ADDR_I,
     CYC_I => s_picBus_CYC_I,
     ERR_O => s_picBus_ERR_O,
-    LOCK_I => s_picBus_LOCK_I,
-    SEL_I => s_picBus_SEL_I,
     STB_I => s_picBus_STB_I,
     WE_I => s_picBus_WE_I,
     CTI_I => s_picBus_CTI_I,
-    BTE_I => s_picBus_BTE_I);
+    uart_irq => s_uart_irq,
+    total_irq => s_total_irq
+    );
 
 --Finally here the wishboneBus is mapped
   wishboneBus : entity work.wishBoneSharedBusTop(autogenerated)
@@ -296,20 +297,20 @@ begin
     spiXipBus_WE_I => s_spiXipBus_WE_I,
     spiXipBus_CTI_I => s_spiXipBus_CTI_I,
     spiXipBus_BTE_I => open,
-    srramSlave_CLK_I => s_srramSlave_CLK_I,
-    srramSlave_RST_I => s_srramSlave_RST_I,
-    srramSlave_DAT_I => s_srramSlave_DAT_I,
-    srramSlave_DAT_O => s_srramSlave_DAT_O,
-    srramSlave_ACK_O => s_srramSlave_ACK_O,
-    srramSlave_ADDR_I => s_srramSlave_ADDR_I,
-    srramSlave_CYC_I => s_srramSlave_CYC_I,
-    srramSlave_ERR_O => s_srramSlave_ERR_O,
-    srramSlave_LOCK_I => s_srramSlave_LOCK_I,
-    srramSlave_SEL_I => s_srramSlave_SEL_I,
-    srramSlave_STB_I => s_srramSlave_STB_I,
-    srramSlave_WE_I => s_srramSlave_WE_I,
-    srramSlave_CTI_I => s_srramSlave_CTI_I,
-    srramSlave_BTE_I => s_srramSlave_BTE_I,
+    sramSlave_CLK_I => s_sramSlave_CLK_I,
+    sramSlave_RST_I => s_sramSlave_RST_I,
+    sramSlave_DAT_I => s_sramSlave_DAT_I,
+    sramSlave_DAT_O => s_sramSlave_DAT_O,
+    sramSlave_ACK_O => s_sramSlave_ACK_O,
+    sramSlave_ADDR_I => s_sramSlave_ADDR_I,
+    sramSlave_CYC_I => s_sramSlave_CYC_I,
+    sramSlave_ERR_O => s_sramSlave_ERR_O,
+    sramSlave_LOCK_I => open,
+    sramSlave_SEL_I => s_sramSlave_SEL_I,
+    sramSlave_STB_I => s_sramSlave_STB_I,
+    sramSlave_WE_I => s_sramSlave_WE_I,
+    sramSlave_CTI_I => s_sramSlave_CTI_I,
+    sramSlave_BTE_I => s_sramSlave_BTE_I,
     spiBus_CLK_I => s_spiBus_CLK_I,
     spiBus_RST_I => s_spiBus_RST_I,
     spiBus_DAT_I => s_spiBus_DAT_I,
@@ -318,12 +319,12 @@ begin
     spiBus_ADDR_I => s_spiBus_ADDR_I,
     spiBus_CYC_I => s_spiBus_CYC_I,
     spiBus_ERR_O => s_spiBus_ERR_O,
-    spiBus_LOCK_I => s_spiBus_LOCK_I,
+    spiBus_LOCK_I => open,
     spiBus_SEL_I => s_spiBus_SEL_I,
     spiBus_STB_I => s_spiBus_STB_I,
     spiBus_WE_I => s_spiBus_WE_I,
     spiBus_CTI_I => s_spiBus_CTI_I,
-    spiBus_BTE_I => s_spiBus_BTE_I,
+    spiBus_BTE_I => open,
     uartBus_CLK_I => s_uartBus_CLK_I,
     uartBus_RST_I => s_uartBus_RST_I,
     uartBus_DAT_I => s_uartBus_DAT_I,
@@ -332,26 +333,26 @@ begin
     uartBus_ADDR_I => s_uartBus_ADDR_I,
     uartBus_CYC_I => s_uartBus_CYC_I,
     uartBus_ERR_O => s_uartBus_ERR_O,
-    uartBus_LOCK_I => s_uartBus_LOCK_I,
+    uartBus_LOCK_I => open,
     uartBus_SEL_I => s_uartBus_SEL_I,
     uartBus_STB_I => s_uartBus_STB_I,
     uartBus_WE_I => s_uartBus_WE_I,
     uartBus_CTI_I => s_uartBus_CTI_I,
-    uartBus_BTE_I => s_uartBus_BTE_I,
+    uartBus_BTE_I => open,
     picBus_CLK_I => s_picBus_CLK_I,
     picBus_RST_I => s_picBus_RST_I,
-    picBus_DAT_I => s_picBus_DAT_I,
+    picBus_DAT_I => open,
     picBus_DAT_O => s_picBus_DAT_O,
     picBus_ACK_O => s_picBus_ACK_O,
     picBus_ADDR_I => s_picBus_ADDR_I,
     picBus_CYC_I => s_picBus_CYC_I,
     picBus_ERR_O => s_picBus_ERR_O,
-    picBus_LOCK_I => s_picBus_LOCK_I,
-    picBus_SEL_I => s_picBus_SEL_I,
+    picBus_LOCK_I => open,
+    picBus_SEL_I => open,
     picBus_STB_I => s_picBus_STB_I,
     picBus_WE_I => s_picBus_WE_I,
     picBus_CTI_I => s_picBus_CTI_I,
-    picBus_BTE_I => s_picBus_BTE_I,
+    picBus_BTE_I => open,
     CLK_O => s_SYSCON_CLK_O,
     RST_O => s_SYSCON_RST_O);
 

@@ -4,7 +4,7 @@
 
   <BusMaster name="serv_system_top" priority="0"/>
   <BusSlave baseAddress="0x0" name="spiXipBus" nrOfSelBits="21"/>
-  <BusSlave baseAddress="0x40000000" name="srramSlave" nrOfSelBits="12"/>
+  <BusSlave baseAddress="0x40000000" name="sramSlave" nrOfSelBits="12"/>
   <BusSlave baseAddress="0x80000000" name="spiBus" nrOfSelBits="4"/>
   <BusSlave baseAddress="0x80000100" name="uartBus" nrOfSelBits="3"/>
   <BusSlave baseAddress="0x80000200" name="picBus" nrOfSelBits="2"/>
