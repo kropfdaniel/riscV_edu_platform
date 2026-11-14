@@ -15,6 +15,7 @@ architecture sim of tb_spiBus is
     constant C_DATA_BITS : integer := 32;
     constant C_ADDR_BITS : integer := 32;
     constant C_BASE_ADDR : std_logic_vector(31 downto 0) := x"4000_0000";
+    constant C_NROFCS    : integer := 2;
 
     -- DUT Signals
     signal clk_i   : std_logic := '0';
@@ -30,8 +31,7 @@ architecture sim of tb_spiBus is
     signal we_i    : std_logic := '0';
     signal cti_i   : std_logic_vector(2 downto 0) := "000";
 
-    signal spi_ncs1 : std_logic;
-    signal spi_ncs2 : std_logic;
+    signal spi_ncs  : std_logic_vector(C_NROFCS-1 downto 0);
     signal spi_clk  : std_logic;
     signal spi_mosi : std_logic;
     signal spi_miso : std_logic := '0';
@@ -58,7 +58,8 @@ begin
         generic map (
             DataBits    => C_DATA_BITS,
             AddrBits    => C_ADDR_BITS,
-            BaseAddress => C_BASE_ADDR
+            BaseAddress => C_BASE_ADDR,
+            NrOfCS      => C_NROFCS
         )
         port map (
             CLK_I   => clk_i,
@@ -73,8 +74,7 @@ begin
             STB_I   => stb_i,
             WE_I    => we_i,
             CTI_I   => cti_i,
-            spiNCs1 => spi_ncs1,
-            spiNCs2 => spi_ncs2,
+            spiNCs  => spi_ncs,
             spiClk  => spi_clk,
             spiMoSi => spi_mosi,
             spiMiSo => spi_miso
@@ -84,37 +84,37 @@ begin
     clk_i <= not clk_i after CLK_PERIOD / 2 when not tb_sim_done else '0';
 
     -- Physical MISO Multiplexer
-    spi_miso <= slave1_miso when spi_ncs1 = '0' else 
-                slave2_miso when spi_ncs2 = '0' else 
+    spi_miso <= slave1_miso when spi_ncs(0) = '0' else 
+                slave2_miso when spi_ncs(1) = '0' else 
                 'Z';
 
     -- 2A. SPI Slave Emulator 1 (nCS1) | Mode 0 (CPOL=0, CPHA=0), MSB First
     process
     begin
         slave1_miso <= 'Z';
-        wait until falling_edge(spi_ncs1);
+        wait until falling_edge(spi_ncs(0));
         
         slave1_miso <= tb_slave1_tx_data(7);
         for i in 7 downto 0 loop
             wait until rising_edge(spi_clk);
             tb_slave1_rx_data(i) <= spi_mosi;
             
-            wait until falling_edge(spi_clk) or rising_edge(spi_ncs1);
-            if spi_ncs1 = '1' then exit; end if; 
+            wait until falling_edge(spi_clk) or rising_edge(spi_ncs(0));
+            if spi_ncs(0) = '1' then exit; end if; 
             
             if i > 0 then
                 slave1_miso <= tb_slave1_tx_data(i-1);
             end if;
         end loop;
         
-        wait until rising_edge(spi_ncs1);
+        wait until rising_edge(spi_ncs(0));
     end process;
 
     -- 2B. SPI Slave Emulator 2 (nCS2) | Mode 3 (CPOL=1, CPHA=1), LSB First
     process
     begin
         slave2_miso <= 'Z';
-        wait until falling_edge(spi_ncs2);
+        wait until falling_edge(spi_ncs(1));
         
         for i in 0 to 7 loop
             -- In CPHA=1, shift occurs on the leading edge (falling edge for CPOL=1)
@@ -127,7 +127,7 @@ begin
             tb_slave2_rx_data(i) <= spi_mosi;
         end loop;
         
-        wait until rising_edge(spi_ncs2);
+        wait until rising_edge(spi_ncs(1));
     end process;
 
     -- 3. Main Stimulus Process (Wishbone Master Procedures Emulator)
@@ -232,7 +232,7 @@ begin
         report "2. Asserting Chip Select 1...";
         wb_write(REG_SPI_SS, x"0000_0002");
         wait for CLK_PERIOD;
-        assert spi_ncs1 = '0' and spi_ncs2 = '1' report "FAIL: Chip Selects not physically asserted" severity failure;
+        assert spi_ncs(0) = '0' and spi_ncs(1) = '1' report "FAIL: Chip Selects not physically asserted" severity failure;
 
         -- =====================================================================
         -- TEST 3: Transmit Data (SPI_DR)
@@ -298,7 +298,7 @@ begin
         report "6. De-asserting Chip Select...";
         wb_write(REG_SPI_SS, x"0000_0003"); -- Both high
         wait for CLK_PERIOD;
-        assert spi_ncs1 = '1' report "FAIL: nCS1 did not de-assert" severity failure;
+        assert spi_ncs(0) = '1' report "FAIL: nCS1 did not de-assert" severity failure;
 
         report "--- STARTING ROUND 2: nCS2, Mode 3, LSB First, CLK_DIV=4 ---";
 
@@ -317,7 +317,7 @@ begin
         report "8. Asserting Chip Select 2...";
         wb_write(REG_SPI_SS, x"0000_0001");
         wait for CLK_PERIOD;
-        assert spi_ncs1 = '1' and spi_ncs2 = '0' report "FAIL: nCS2 did not physically assert" severity failure;
+        assert spi_ncs(0) = '1' and spi_ncs(1) = '0' report "FAIL: nCS2 did not physically assert" severity failure;
 
         -- =====================================================================
         -- TEST 9: Transmit Payload

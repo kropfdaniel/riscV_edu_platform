@@ -72,8 +72,6 @@ architecture rtl of spiByteTransceiver is
     signal s_sampleEn       : std_logic;
     --! flag to indicate when to shift the next bit out
     signal s_shiftEn        : std_logic;
-    --! stores the sampleded Miso signal
-    signal s_miSoSampledReg : std_logic;
 begin
     spiMoSi <= s_mosiReg;
     rxByte  <= s_shiftReg; -- After transaction s_shiftReg holds the received data.

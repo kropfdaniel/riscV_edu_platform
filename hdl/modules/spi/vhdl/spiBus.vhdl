@@ -17,22 +17,21 @@
 --!
 --! ### Register Map
 --! 
---! | Offset | Register | Bits  | Field     | Access | Description                                 |
---! |--------|----------|-------|-----------|--------|---------------------------------------------|
---! | `0x00` | `SPI_CR` | 31:16 | `CLK_DIV` | R/W    | 16-bit Clock Divider value                  |
---! |        |          | 15:4  | Reserved  | R/O    | Read as 0                                   |
---! |        |          | 3     | `LSBF`    | R/W    | 1 = LSB First, 0 = MSB First                |
---! |        |          | 2     | `CPHA`    | R/W    | Clock Phase                                 |
---! |        |          | 1     | `CPOL`    | R/W    | Clock Polarity                              |
---! |        |          | 0     | `SPI_EN`  | R/W    | 1 = Enable clock divider tick, 0 = Disable  |
---! | `0x04` | `SPI_SR` | 31:1  | Reserved  | R/O    | Read as 0                                   |
---! |        |          | 0     | `BUSY`    | R/O    | 1 = Transaction in progress, bus locked     |
---! | `0x08` | `SPI_DR` | 31:8  | Reserved  | R/O    | Read as 0                                   |
---! |        |          | 7:0   | `DATA`    | R/W    | Write triggers TX, Read yields RX byte      |
---! | `0x0C` | `SPI_SS` | 31:2  | Reserved  | R/O    | Read as 0                                   |
---! |        |          | 1     | `nCS2`    | R/W    | State of spiNCs2 pin                        |
---! |        |          | 0     | `nCS1`    | R/W    | State of spiNCs1 pin
---------------------------------------------------------------------------------
+--! | Offset | Register | Bits        | Field     | Access | Description                                                           |
+--! |--------|----------|-------------|-----------|--------|-----------------------------------------------------------------------|
+--! | `0x00` | `SPI_CR` | 31:16       | `CLK_DIV` | R/W    | 16-bit Clock Divider value                                            |
+--! |        |          | 15:4        | Reserved  | R/O    | Read as 0                                                             |
+--! |        |          | 3           | `LSBF`    | R/W    | 1 = LSB First, 0 = MSB First                                          |
+--! |        |          | 2           | `CPHA`    | R/W    | Clock Phase                                                           |
+--! |        |          | 1           | `CPOL`    | R/W    | Clock Polarity                                                        |
+--! |        |          | 0           | `SPI_EN`  | R/W    | 1 = Enable clock divider tick, 0 = Disable                            |
+--! | `0x04` | `SPI_SR` | 31:1        | Reserved  | R/O    | Read as 0                                                             |
+--! |        |          | 0           | `BUSY`    | R/O    | 1 = Transaction in progress, bus locked                               |
+--! | `0x08` | `SPI_DR` | 31:8        | Reserved  | R/O    | Read as 0                                                             |
+--! |        |          | 7:0         | `DATA`    | R/W    | Write triggers TX, Read yields RX byte                                |
+--! | `0x0C` | `SPI_SS` | 31:NrOfCS   | Reserved  | R/O    | Read as 0                                                             |
+--! |        |          | (NumCS-1):0 | `nCS`     | R/W    | State of Chip Selects. Each bit directly drives a physical spiNCs pin |
+------------------------------------------------------------------------------------------------------------------------------------
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -45,7 +44,9 @@ entity spiBus is
         --! Number of Wishbone Address Bits.
         AddrBits    : integer                                   := 32;
         --! Base Wishbone address of this module (used by interconnect, not internally).
-        BaseAddress : std_logic_vector(AddrBits-1 downto 0)   := (AddrBits => '0')
+        BaseAddress : std_logic_vector(AddrBits-1 downto 0)     := (AddrBits => '0');
+        --! Define the number of Chip select signals
+        NrOfCS      : integer range 1 to 32                     := 2
     );
     port (
         -- Wishbone Signals
@@ -80,10 +81,8 @@ entity spiBus is
         -- BTE_I is not used in this module
 
         -- External
-        --! Chip select 1 control line
-        spiNCs1      : out std_logic;
-        --! Chip select 2 control line
-        spiNCs2      : out std_logic;
+        --! Chip select control lines
+        spiNCs      : out std_logic_vector(NrOfCS-1 downto 0);
         --! SPI Serial Clock
         spiClk      : out std_logic;
         --! Master Out, Slave In
@@ -135,7 +134,7 @@ architecture platformIndependent of spiBus is
     
     -- 0x0C: SPI_CS (Chip Select Register)
     --! SPI nCs register
-    signal s_nCsReg               : std_logic_vector(1 downto 0);
+    signal s_nCsReg               : std_logic_vector(NrOfCS-1 downto 0);
 
     --! flag used to indicate that a new spi byte transaction should be started
     signal s_startSpiTransaction  : std_logic;
@@ -147,8 +146,7 @@ architecture platformIndependent of spiBus is
 begin
     ERR_O   <= s_errorReg;
     ACK_O   <= s_ackReg;
-    spiNCs1 <= s_nCsReg(0);
-    spiNCs2 <= s_nCsReg(1);
+    spiNCs <= s_nCsReg;
 
     -- if the address on the bus is within the address space for this module
     s_isMyTransaction <= (CYC_I and STB_I) when ADDR_I( AddrBits-1 downto 4 ) = BaseAddress( AddrBits-1 downto 4 ) else '0';
@@ -183,7 +181,7 @@ begin
                 s_cpolReg   <= '0';
                 s_spiEnReg  <= '0';
                 s_txByteReg <= (others => '0');
-                s_nCsReg    <= "11"; -- chip selects lines are high after reset
+                s_nCsReg    <= (others => '1'); -- chip selects lines are high after reset
             else
                 s_startSpiTransaction <= '0'; -- auto disable 
                 if s_we = '1' and s_spiBusy = '0' then
@@ -215,7 +213,7 @@ begin
                         when "11" => -- 0x0C: SPI_SS
                             -- Byte 0: Chip Selects
                             if SEL_I(0) = '1' then
-                                s_nCsReg <= DAT_I(1 downto 0);
+                                s_nCsReg <= DAT_I(NrOfCS-1 downto 0);
                             end if;
                         when others =>
                             null;
@@ -232,17 +230,17 @@ begin
         
         case s_spiRegisterIndex is
             when "00" => -- 0x00: SPI_CR
-                DAT_O(31 downto 16) <= s_clkDivReg;
-                DAT_O(3)            <= s_lsbfReg;
-                DAT_O(2)            <= s_cphaReg;
-                DAT_O(1)            <= s_cpolReg;
-                DAT_O(0)            <= s_spiEnReg;
+                DAT_O(31 downto 16)      <= s_clkDivReg;
+                DAT_O(3)                 <= s_lsbfReg;
+                DAT_O(2)                 <= s_cphaReg;
+                DAT_O(1)                 <= s_cpolReg;
+                DAT_O(0)                 <= s_spiEnReg;
             when "01" => -- 0x04: SPI_SR
-                DAT_O(0)            <= s_spiBusy;
+                DAT_O(0)                 <= s_spiBusy;
             when "10" => -- 0x08: SPI_DR
-                DAT_O(7 downto 0)   <= s_rxByte;
+                DAT_O(7 downto 0)        <= s_rxByte;
             when "11" => -- 0x0C: SPI_SS
-                DAT_O(1 downto 0)   <= s_nCsReg;
+                DAT_O(NrOfCS-1 downto 0) <= s_nCsReg;
             when others =>
                 null;
         end case;
