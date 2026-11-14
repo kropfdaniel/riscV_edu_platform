@@ -1,4 +1,4 @@
-# Equivalence checks of the serv core: the VHDL port (vhdl/) against the serv reference (verilog/).
+# Equivalence checks of the uart module: the VHDL (vhdl/) against the verilog reference (verilog/).
 # Run with ./run.py, see verification/README.md in the repository root for the format.
 
 
@@ -41,18 +41,32 @@ verilog = ["../../support/verilog/sramLutRam.v"]
 
 
 [[test]]
-name  = "baudGenerator"
+name  = "baudGenerator_blackbox"
+top   = "baudGenerator"
 use   = ["baudGenerator", "synchroFlop"]
 sat_cycles = 30
 reset = { reset = [1, 0] }
 blackbox_instances = ["synchroFlop"]
 
 [[test]]
-name  = "uartRxFifo"
+name  = "baudGenerator"
+use   = ["baudGenerator", "synchroFlop"]
+sat_cycles = 30
+reset = { reset = [1, 0] }
+
+[[test]]
+name  = "uartRxFifo_blackbox"
+top   = "uartRxFifo"
 use   = ["RxFifo", "sramLutRam"]
 sat_cycles = 8
 reset = { reset = [1, 0] }
 blackbox_instances = ["sramLutRam"]
+
+[[test]]
+name  = "uartRxFifo"
+use   = ["RxFifo", "sramLutRam"]
+sat_cycles = 8
+reset = { reset = [1, 0] }
 
 [[test]]
 name  = "uartRx"
@@ -61,11 +75,18 @@ sat_cycles = 25
 reset = { reset = [1, 0] }
 
 [[test]]
-name  = "uartTxFifo"
+name  = "uartTxFifo_blackbox"
+top   = "uartTxFifo"
 use   = ["TxFifo", "sramLutRam"]
 sat_cycles = 8
 reset = { reset = [1, 0] }
 blackbox_instances = ["sramLutRam"]
+
+[[test]]
+name  = "uartTxFifo"
+use   = ["TxFifo", "sramLutRam"]
+sat_cycles = 8
+reset = { reset = [1, 0] }
 
 [[test]]
 name  = "uartTx"
@@ -74,9 +95,15 @@ sat_cycles = 25
 reset = { reset = [1, 0] }
 
 [[test]]
+name  = "uartBus_blackbox"
+top   = "uartBus"
+use   = ["Bus", "RxFifo", "TxFifo", "Rx", "Tx", "baudGenerator", "synchroFlop", "sramLutRam"]
+sat_cycles = 30
+reset = { RST_I = [1, 0] }
+blackbox_instances = ["RxFifo", "TxFifo", "Rx", "Tx", "baudGenerator", "synchroFlop", "sramLutRam"]
+
+[[test]]
 name  = "uartBus"
 use   = ["Bus", "RxFifo", "TxFifo", "Rx", "Tx", "baudGenerator", "synchroFlop", "sramLutRam"]
-sat_cycles = 10
+sat_cycles = 30
 reset = { RST_I = [1, 0] }
-blackbox_instances = ["sramLutRam", "synchroFlop"]
-

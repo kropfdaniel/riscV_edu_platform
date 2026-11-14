@@ -1,4 +1,4 @@
-# Equivalence checks of the serv core: the VHDL port (vhdl/) against the serv reference (verilog/).
+# Equivalence checks of the support modules: the VHDL (vhdl/) against the verilog reference (verilog/).
 # Run with ./run.py, see verification/README.md in the repository root for the format.
 
 
