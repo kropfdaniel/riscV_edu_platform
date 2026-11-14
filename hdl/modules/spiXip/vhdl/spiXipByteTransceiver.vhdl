@@ -15,7 +15,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity spiByteTransceiver is
+entity spiXipByteTransceiver is
     port (
         --! System clock domain. Expected 50MHz clock
         clock                   : in std_logic;
@@ -44,9 +44,9 @@ entity spiByteTransceiver is
         --! Flash Reset (low active)
         flashResetN             : out std_logic
     );
-end entity spiByteTransceiver;
+end entity spiXipByteTransceiver;
 
-architecture rtl of spiByteTransceiver is
+architecture rtl of spiXipByteTransceiver is
     --! FSM States definition for SPI transaction lifecycle
     type t_state is (
         --! Waits on startByteTransaction signal to start a transaction 

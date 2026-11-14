@@ -90,13 +90,13 @@ architecture platformIndependent of spiXipBus is
     signal s_isCorrectTransaction   : std_logic;
     --! Delay register to detect the start of a transaction
     signal s_isCorrectTransaction_d : std_logic;
-    --! flag to start an spi byte transaction from spiXipController to spiByteTransceiver
+    --! flag to start an spi byte transaction from spiXipController to spiXipByteTransceiver
     signal s_startByteTransaction   : std_logic;
-    --! Byte to send onto SPI from spiXipController to spiByteTransceiver
+    --! Byte to send onto SPI from spiXipController to spiXipByteTransceiver
     signal s_txByte                 : std_logic_vector(7 downto 0);
-    --! Byte received onto SPI from spiByteTransceiver to spiXipController
+    --! Byte received onto SPI from spiXipByteTransceiver to spiXipController
     signal s_rxByte                 : std_logic_vector(7 downto 0);
-    --! Flag that a SPI Byte transaction is ongoing from spiByteTransceiver to spiXipController
+    --! Flag that a SPI Byte transaction is ongoing from spiXipByteTransceiver to spiXipController
     signal s_busyByteTransaction    : std_logic;
     --! Flag which indicates when the spi controller should start to read a byte.
     signal s_startRead              : std_logic;
@@ -138,7 +138,7 @@ begin
     end process;
 
     --! Low-level SPI Mode 0 (CPOL=0 and CPHA=0) physical datapath and transceiver engine.
-    Transceiver : entity work.spiByteTransceiver(rtl)
+    Transceiver : entity work.spiXipByteTransceiver(rtl)
         port map (
             clock                => CLK_I,
             reset                => RST_I,

@@ -1,6 +1,6 @@
 --------------------------------------------------------------------------------
 --! @author     Daniel Kropf
---! @brief      Self-checking testbench for spiByteTransceiver.
+--! @brief      Self-checking testbench for spiXipByteTransceiver.
 --!
 --! Verifies SPI Mode 0 byte transmission and reception using a direct 
 --! MOSI-to-MISO loopback. Validates FSM busy flags and static output pins.
@@ -10,10 +10,10 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity tb_spiByteTransceiver is
-end entity tb_spiByteTransceiver;
+entity tb_spiXipByteTransceiver is
+end entity tb_spiXipByteTransceiver;
 
-architecture sim of tb_spiByteTransceiver is
+architecture sim of tb_spiXipByteTransceiver is
     constant CLK_PERIOD : time := 20 ns; -- 50 MHz clock
     
     signal clk     : std_logic := '0';
@@ -30,7 +30,7 @@ architecture sim of tb_spiByteTransceiver is
     signal wpn     : std_logic;
     signal rstn    : std_logic;
 begin
-    uut: entity work.spiByteTransceiver(rtl)
+    uut: entity work.spiXipByteTransceiver(rtl)
         port map (
             clock                => clk,
             reset                => rst,
