@@ -57,7 +57,6 @@ architecture rtl of system_top is
     signal s_SYSCON_RST_O : std_logic;
 
     signal s_reset : std_logic_vector(3 downto 0);
-    signal s_countReg : std_logic_vector(15 downto 0);
 begin
     s_SYSCON_CLK_O <= clock;
     s_SYSCON_RST_O <= not n_reset;
