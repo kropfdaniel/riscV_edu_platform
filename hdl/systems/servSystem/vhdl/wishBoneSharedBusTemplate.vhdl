@@ -6,20 +6,20 @@
 -- master and slaves to the shared bus component.
 -- You can copy-paste them in your toplevel file.
 
-  signal s_serv_system_top_CLK_I : std_logic;
-  signal s_serv_system_top_RST_I : std_logic;
-  signal s_serv_system_top_DAT_I : std_logic_vector((DataBits - 1) downto 0);
-  signal s_serv_system_top_DAT_O : std_logic_vector((DataBits - 1) downto 0);
-  signal s_serv_system_top_ACK_I : std_logic;
-  signal s_serv_system_top_ADDR_O : std_logic_vector((AddrBits - 1) downto 0);
-  signal s_serv_system_top_CYC_O : std_logic;
-  signal s_serv_system_top_ERR_I : std_logic;
-  signal s_serv_system_top_LOCK_O : std_logic;
-  signal s_serv_system_top_SEL_O : std_logic_vector(((DataBits / 8) - 1) downto 0);
-  signal s_serv_system_top_STB_O : std_logic;
-  signal s_serv_system_top_WE_O : std_logic;
-  signal s_serv_system_top_CTI_O : std_logic_vector(2 downto 0);
-  signal s_serv_system_top_BTE_O : std_logic_vector(1 downto 0);
+  signal s_serv_wb_top_CLK_I : std_logic;
+  signal s_serv_wb_top_RST_I : std_logic;
+  signal s_serv_wb_top_DAT_I : std_logic_vector((DataBits - 1) downto 0);
+  signal s_serv_wb_top_DAT_O : std_logic_vector((DataBits - 1) downto 0);
+  signal s_serv_wb_top_ACK_I : std_logic;
+  signal s_serv_wb_top_ADDR_O : std_logic_vector((AddrBits - 1) downto 0);
+  signal s_serv_wb_top_CYC_O : std_logic;
+  signal s_serv_wb_top_ERR_I : std_logic;
+  signal s_serv_wb_top_LOCK_O : std_logic;
+  signal s_serv_wb_top_SEL_O : std_logic_vector(((DataBits / 8) - 1) downto 0);
+  signal s_serv_wb_top_STB_O : std_logic;
+  signal s_serv_wb_top_WE_O : std_logic;
+  signal s_serv_wb_top_CTI_O : std_logic_vector(2 downto 0);
+  signal s_serv_wb_top_BTE_O : std_logic_vector(1 downto 0);
   signal s_spiXipBus_CLK_I : std_logic;
   signal s_spiXipBus_RST_I : std_logic;
   signal s_spiXipBus_DAT_I : std_logic_vector((DataBits - 1) downto 0);
@@ -34,20 +34,20 @@
   signal s_spiXipBus_WE_I : std_logic;
   signal s_spiXipBus_CTI_I : std_logic_vector(2 downto 0);
   signal s_spiXipBus_BTE_I : std_logic_vector(1 downto 0);
-  signal s_srramSlave_CLK_I : std_logic;
-  signal s_srramSlave_RST_I : std_logic;
-  signal s_srramSlave_DAT_I : std_logic_vector((DataBits - 1) downto 0);
-  signal s_srramSlave_DAT_O : std_logic_vector((DataBits - 1) downto 0);
-  signal s_srramSlave_ACK_O : std_logic;
-  signal s_srramSlave_ADDR_I : std_logic_vector((AddrBits - 1) downto 0);
-  signal s_srramSlave_CYC_I : std_logic;
-  signal s_srramSlave_ERR_O : std_logic;
-  signal s_srramSlave_LOCK_I : std_logic;
-  signal s_srramSlave_SEL_I : std_logic_vector(((DataBits / 8) - 1) downto 0);
-  signal s_srramSlave_STB_I : std_logic;
-  signal s_srramSlave_WE_I : std_logic;
-  signal s_srramSlave_CTI_I : std_logic_vector(2 downto 0);
-  signal s_srramSlave_BTE_I : std_logic_vector(1 downto 0);
+  signal s_sramSlave_CLK_I : std_logic;
+  signal s_sramSlave_RST_I : std_logic;
+  signal s_sramSlave_DAT_I : std_logic_vector((DataBits - 1) downto 0);
+  signal s_sramSlave_DAT_O : std_logic_vector((DataBits - 1) downto 0);
+  signal s_sramSlave_ACK_O : std_logic;
+  signal s_sramSlave_ADDR_I : std_logic_vector((AddrBits - 1) downto 0);
+  signal s_sramSlave_CYC_I : std_logic;
+  signal s_sramSlave_ERR_O : std_logic;
+  signal s_sramSlave_LOCK_I : std_logic;
+  signal s_sramSlave_SEL_I : std_logic_vector(((DataBits / 8) - 1) downto 0);
+  signal s_sramSlave_STB_I : std_logic;
+  signal s_sramSlave_WE_I : std_logic;
+  signal s_sramSlave_CTI_I : std_logic_vector(2 downto 0);
+  signal s_sramSlave_BTE_I : std_logic_vector(1 downto 0);
   signal s_spiBus_CLK_I : std_logic;
   signal s_spiBus_RST_I : std_logic;
   signal s_spiBus_DAT_I : std_logic_vector((DataBits - 1) downto 0);
@@ -97,25 +97,25 @@
 -- Probably you have to change it slightly to adapt to your
 -- masters/slaves
 
-  busMaster_serv_system_top : entity work.serv_system_top(yourImplementation)
+  busMaster_serv_wb_top : entity work.serv_wb_top(yourImplementation)
   generic map (
     AddrBits => AddrBits,
     DataBits => DataBits)
   port map (
-    CLK_I => s_serv_system_top_CLK_I,
-    RST_I => s_serv_system_top_RST_I,
-    DAT_I => s_serv_system_top_DAT_I,
-    DAT_O => s_serv_system_top_DAT_O,
-    ACK_I => s_serv_system_top_ACK_I,
-    ADDR_O => s_serv_system_top_ADDR_O,
-    CYC_O => s_serv_system_top_CYC_O,
-    ERR_I => s_serv_system_top_ERR_I,
-    LOCK_O => s_serv_system_top_LOCK_O,
-    SEL_O => s_serv_system_top_SEL_O,
-    STB_O => s_serv_system_top_STB_O,
-    WE_O => s_serv_system_top_WE_O,
-    CTI_O => s_serv_system_top_CTI_O,
-    BTE_O => s_serv_system_top_BTE_O);
+    CLK_I => s_serv_wb_top_CLK_I,
+    RST_I => s_serv_wb_top_RST_I,
+    DAT_I => s_serv_wb_top_DAT_I,
+    DAT_O => s_serv_wb_top_DAT_O,
+    ACK_I => s_serv_wb_top_ACK_I,
+    ADDR_O => s_serv_wb_top_ADDR_O,
+    CYC_O => s_serv_wb_top_CYC_O,
+    ERR_I => s_serv_wb_top_ERR_I,
+    LOCK_O => s_serv_wb_top_LOCK_O,
+    SEL_O => s_serv_wb_top_SEL_O,
+    STB_O => s_serv_wb_top_STB_O,
+    WE_O => s_serv_wb_top_WE_O,
+    CTI_O => s_serv_wb_top_CTI_O,
+    BTE_O => s_serv_wb_top_BTE_O);
 
   busSlave_spiXipBus : entity work.spiXipBus(yourImplementation)
   generic map (
@@ -138,26 +138,26 @@
     CTI_I => s_spiXipBus_CTI_I,
     BTE_I => s_spiXipBus_BTE_I);
 
-  busSlave_srramSlave : entity work.srramSlave(yourImplementation)
+  busSlave_sramSlave : entity work.sramSlave(yourImplementation)
   generic map (
     BaseAddress => std_logic_vector(to_unsigned(16#40000000#, AddrBits)),
     AddrBits => AddrBits,
     DataBits => DataBits)
   port map (
-    CLK_I => s_srramSlave_CLK_I,
-    RST_I => s_srramSlave_RST_I,
-    DAT_I => s_srramSlave_DAT_I,
-    DAT_O => s_srramSlave_DAT_O,
-    ACK_O => s_srramSlave_ACK_O,
-    ADDR_I => s_srramSlave_ADDR_I,
-    CYC_I => s_srramSlave_CYC_I,
-    ERR_O => s_srramSlave_ERR_O,
-    LOCK_I => s_srramSlave_LOCK_I,
-    SEL_I => s_srramSlave_SEL_I,
-    STB_I => s_srramSlave_STB_I,
-    WE_I => s_srramSlave_WE_I,
-    CTI_I => s_srramSlave_CTI_I,
-    BTE_I => s_srramSlave_BTE_I);
+    CLK_I => s_sramSlave_CLK_I,
+    RST_I => s_sramSlave_RST_I,
+    DAT_I => s_sramSlave_DAT_I,
+    DAT_O => s_sramSlave_DAT_O,
+    ACK_O => s_sramSlave_ACK_O,
+    ADDR_I => s_sramSlave_ADDR_I,
+    CYC_I => s_sramSlave_CYC_I,
+    ERR_O => s_sramSlave_ERR_O,
+    LOCK_I => s_sramSlave_LOCK_I,
+    SEL_I => s_sramSlave_SEL_I,
+    STB_I => s_sramSlave_STB_I,
+    WE_I => s_sramSlave_WE_I,
+    CTI_I => s_sramSlave_CTI_I,
+    BTE_I => s_sramSlave_BTE_I);
 
   busSlave_spiBus : entity work.spiBus(yourImplementation)
   generic map (
@@ -229,20 +229,20 @@
       DataBits => DataBits,
       priorityScheme => priorityScheme
   ) port map (
-    serv_system_top_CLK_I => s_serv_system_top_CLK_I,
-    serv_system_top_RST_I => s_serv_system_top_RST_I,
-    serv_system_top_DAT_I => s_serv_system_top_DAT_I,
-    serv_system_top_DAT_O => s_serv_system_top_DAT_O,
-    serv_system_top_ACK_I => s_serv_system_top_ACK_I,
-    serv_system_top_ADDR_O => s_serv_system_top_ADDR_O,
-    serv_system_top_CYC_O => s_serv_system_top_CYC_O,
-    serv_system_top_ERR_I => s_serv_system_top_ERR_I,
-    serv_system_top_LOCK_O => s_serv_system_top_LOCK_O,
-    serv_system_top_SEL_O => s_serv_system_top_SEL_O,
-    serv_system_top_STB_O => s_serv_system_top_STB_O,
-    serv_system_top_WE_O => s_serv_system_top_WE_O,
-    serv_system_top_CTI_O => s_serv_system_top_CTI_O,
-    serv_system_top_BTE_O => s_serv_system_top_BTE_O,
+    serv_wb_top_CLK_I => s_serv_wb_top_CLK_I,
+    serv_wb_top_RST_I => s_serv_wb_top_RST_I,
+    serv_wb_top_DAT_I => s_serv_wb_top_DAT_I,
+    serv_wb_top_DAT_O => s_serv_wb_top_DAT_O,
+    serv_wb_top_ACK_I => s_serv_wb_top_ACK_I,
+    serv_wb_top_ADDR_O => s_serv_wb_top_ADDR_O,
+    serv_wb_top_CYC_O => s_serv_wb_top_CYC_O,
+    serv_wb_top_ERR_I => s_serv_wb_top_ERR_I,
+    serv_wb_top_LOCK_O => s_serv_wb_top_LOCK_O,
+    serv_wb_top_SEL_O => s_serv_wb_top_SEL_O,
+    serv_wb_top_STB_O => s_serv_wb_top_STB_O,
+    serv_wb_top_WE_O => s_serv_wb_top_WE_O,
+    serv_wb_top_CTI_O => s_serv_wb_top_CTI_O,
+    serv_wb_top_BTE_O => s_serv_wb_top_BTE_O,
     spiXipBus_CLK_I => s_spiXipBus_CLK_I,
     spiXipBus_RST_I => s_spiXipBus_RST_I,
     spiXipBus_DAT_I => s_spiXipBus_DAT_I,
@@ -257,20 +257,20 @@
     spiXipBus_WE_I => s_spiXipBus_WE_I,
     spiXipBus_CTI_I => s_spiXipBus_CTI_I,
     spiXipBus_BTE_I => s_spiXipBus_BTE_I,
-    srramSlave_CLK_I => s_srramSlave_CLK_I,
-    srramSlave_RST_I => s_srramSlave_RST_I,
-    srramSlave_DAT_I => s_srramSlave_DAT_I,
-    srramSlave_DAT_O => s_srramSlave_DAT_O,
-    srramSlave_ACK_O => s_srramSlave_ACK_O,
-    srramSlave_ADDR_I => s_srramSlave_ADDR_I,
-    srramSlave_CYC_I => s_srramSlave_CYC_I,
-    srramSlave_ERR_O => s_srramSlave_ERR_O,
-    srramSlave_LOCK_I => s_srramSlave_LOCK_I,
-    srramSlave_SEL_I => s_srramSlave_SEL_I,
-    srramSlave_STB_I => s_srramSlave_STB_I,
-    srramSlave_WE_I => s_srramSlave_WE_I,
-    srramSlave_CTI_I => s_srramSlave_CTI_I,
-    srramSlave_BTE_I => s_srramSlave_BTE_I,
+    sramSlave_CLK_I => s_sramSlave_CLK_I,
+    sramSlave_RST_I => s_sramSlave_RST_I,
+    sramSlave_DAT_I => s_sramSlave_DAT_I,
+    sramSlave_DAT_O => s_sramSlave_DAT_O,
+    sramSlave_ACK_O => s_sramSlave_ACK_O,
+    sramSlave_ADDR_I => s_sramSlave_ADDR_I,
+    sramSlave_CYC_I => s_sramSlave_CYC_I,
+    sramSlave_ERR_O => s_sramSlave_ERR_O,
+    sramSlave_LOCK_I => s_sramSlave_LOCK_I,
+    sramSlave_SEL_I => s_sramSlave_SEL_I,
+    sramSlave_STB_I => s_sramSlave_STB_I,
+    sramSlave_WE_I => s_sramSlave_WE_I,
+    sramSlave_CTI_I => s_sramSlave_CTI_I,
+    sramSlave_BTE_I => s_sramSlave_BTE_I,
     spiBus_CLK_I => s_spiBus_CLK_I,
     spiBus_RST_I => s_spiBus_RST_I,
     spiBus_DAT_I => s_spiBus_DAT_I,

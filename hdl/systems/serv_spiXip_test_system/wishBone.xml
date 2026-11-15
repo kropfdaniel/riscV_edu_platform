@@ -2,6 +2,6 @@
 <WishBoneBusDescription version="1.0">
   This file is intended to be loaded by busGenerator
 
-  <BusMaster name="serv_system_top" priority="0"/>
+  <BusMaster name="serv_wb_top" priority="0"/>
   <BusSlave baseAddress="0x0" name="spiXipBus" nrOfSelBits="21"/>
 </WishBoneBusDescription>

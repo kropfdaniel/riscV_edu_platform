@@ -6,20 +6,20 @@
 -- master and slaves to the shared bus component.
 -- You can copy-paste them in your toplevel file.
 
-  signal s_serv_system_top_CLK_I : std_logic;
-  signal s_serv_system_top_RST_I : std_logic;
-  signal s_serv_system_top_DAT_I : std_logic_vector((DataBits - 1) downto 0);
-  signal s_serv_system_top_DAT_O : std_logic_vector((DataBits - 1) downto 0);
-  signal s_serv_system_top_ACK_I : std_logic;
-  signal s_serv_system_top_ADDR_O : std_logic_vector((AddrBits - 1) downto 0);
-  signal s_serv_system_top_CYC_O : std_logic;
-  signal s_serv_system_top_ERR_I : std_logic;
-  signal s_serv_system_top_LOCK_O : std_logic;
-  signal s_serv_system_top_SEL_O : std_logic_vector(((DataBits / 8) - 1) downto 0);
-  signal s_serv_system_top_STB_O : std_logic;
-  signal s_serv_system_top_WE_O : std_logic;
-  signal s_serv_system_top_CTI_O : std_logic_vector(2 downto 0);
-  signal s_serv_system_top_BTE_O : std_logic_vector(1 downto 0);
+  signal s_serv_wb_top_CLK_I : std_logic;
+  signal s_serv_wb_top_RST_I : std_logic;
+  signal s_serv_wb_top_DAT_I : std_logic_vector((DataBits - 1) downto 0);
+  signal s_serv_wb_top_DAT_O : std_logic_vector((DataBits - 1) downto 0);
+  signal s_serv_wb_top_ACK_I : std_logic;
+  signal s_serv_wb_top_ADDR_O : std_logic_vector((AddrBits - 1) downto 0);
+  signal s_serv_wb_top_CYC_O : std_logic;
+  signal s_serv_wb_top_ERR_I : std_logic;
+  signal s_serv_wb_top_LOCK_O : std_logic;
+  signal s_serv_wb_top_SEL_O : std_logic_vector(((DataBits / 8) - 1) downto 0);
+  signal s_serv_wb_top_STB_O : std_logic;
+  signal s_serv_wb_top_WE_O : std_logic;
+  signal s_serv_wb_top_CTI_O : std_logic_vector(2 downto 0);
+  signal s_serv_wb_top_BTE_O : std_logic_vector(1 downto 0);
   signal s_spiXipBus_CLK_I : std_logic;
   signal s_spiXipBus_RST_I : std_logic;
   signal s_spiXipBus_DAT_I : std_logic_vector((DataBits - 1) downto 0);
@@ -41,25 +41,25 @@
 -- Probably you have to change it slightly to adapt to your
 -- masters/slaves
 
-  busMaster_serv_system_top : entity work.serv_system_top(yourImplementation)
+  busMaster_serv_wb_top : entity work.serv_wb_top(yourImplementation)
   generic map (
     AddrBits => AddrBits,
     DataBits => DataBits)
   port map (
-    CLK_I => s_serv_system_top_CLK_I,
-    RST_I => s_serv_system_top_RST_I,
-    DAT_I => s_serv_system_top_DAT_I,
-    DAT_O => s_serv_system_top_DAT_O,
-    ACK_I => s_serv_system_top_ACK_I,
-    ADDR_O => s_serv_system_top_ADDR_O,
-    CYC_O => s_serv_system_top_CYC_O,
-    ERR_I => s_serv_system_top_ERR_I,
-    LOCK_O => s_serv_system_top_LOCK_O,
-    SEL_O => s_serv_system_top_SEL_O,
-    STB_O => s_serv_system_top_STB_O,
-    WE_O => s_serv_system_top_WE_O,
-    CTI_O => s_serv_system_top_CTI_O,
-    BTE_O => s_serv_system_top_BTE_O);
+    CLK_I => s_serv_wb_top_CLK_I,
+    RST_I => s_serv_wb_top_RST_I,
+    DAT_I => s_serv_wb_top_DAT_I,
+    DAT_O => s_serv_wb_top_DAT_O,
+    ACK_I => s_serv_wb_top_ACK_I,
+    ADDR_O => s_serv_wb_top_ADDR_O,
+    CYC_O => s_serv_wb_top_CYC_O,
+    ERR_I => s_serv_wb_top_ERR_I,
+    LOCK_O => s_serv_wb_top_LOCK_O,
+    SEL_O => s_serv_wb_top_SEL_O,
+    STB_O => s_serv_wb_top_STB_O,
+    WE_O => s_serv_wb_top_WE_O,
+    CTI_O => s_serv_wb_top_CTI_O,
+    BTE_O => s_serv_wb_top_BTE_O);
 
   busSlave_spiXipBus : entity work.spiXipBus(yourImplementation)
   generic map (
@@ -89,20 +89,20 @@
       DataBits => DataBits,
       priorityScheme => priorityScheme
   ) port map (
-    serv_system_top_CLK_I => s_serv_system_top_CLK_I,
-    serv_system_top_RST_I => s_serv_system_top_RST_I,
-    serv_system_top_DAT_I => s_serv_system_top_DAT_I,
-    serv_system_top_DAT_O => s_serv_system_top_DAT_O,
-    serv_system_top_ACK_I => s_serv_system_top_ACK_I,
-    serv_system_top_ADDR_O => s_serv_system_top_ADDR_O,
-    serv_system_top_CYC_O => s_serv_system_top_CYC_O,
-    serv_system_top_ERR_I => s_serv_system_top_ERR_I,
-    serv_system_top_LOCK_O => s_serv_system_top_LOCK_O,
-    serv_system_top_SEL_O => s_serv_system_top_SEL_O,
-    serv_system_top_STB_O => s_serv_system_top_STB_O,
-    serv_system_top_WE_O => s_serv_system_top_WE_O,
-    serv_system_top_CTI_O => s_serv_system_top_CTI_O,
-    serv_system_top_BTE_O => s_serv_system_top_BTE_O,
+    serv_wb_top_CLK_I => s_serv_wb_top_CLK_I,
+    serv_wb_top_RST_I => s_serv_wb_top_RST_I,
+    serv_wb_top_DAT_I => s_serv_wb_top_DAT_I,
+    serv_wb_top_DAT_O => s_serv_wb_top_DAT_O,
+    serv_wb_top_ACK_I => s_serv_wb_top_ACK_I,
+    serv_wb_top_ADDR_O => s_serv_wb_top_ADDR_O,
+    serv_wb_top_CYC_O => s_serv_wb_top_CYC_O,
+    serv_wb_top_ERR_I => s_serv_wb_top_ERR_I,
+    serv_wb_top_LOCK_O => s_serv_wb_top_LOCK_O,
+    serv_wb_top_SEL_O => s_serv_wb_top_SEL_O,
+    serv_wb_top_STB_O => s_serv_wb_top_STB_O,
+    serv_wb_top_WE_O => s_serv_wb_top_WE_O,
+    serv_wb_top_CTI_O => s_serv_wb_top_CTI_O,
+    serv_wb_top_BTE_O => s_serv_wb_top_BTE_O,
     spiXipBus_CLK_I => s_spiXipBus_CLK_I,
     spiXipBus_RST_I => s_spiXipBus_RST_I,
     spiXipBus_DAT_I => s_spiXipBus_DAT_I,

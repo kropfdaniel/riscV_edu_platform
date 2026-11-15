@@ -36,16 +36,16 @@ architecture rtl of system_top is
     -- master and slaves to the shared bus component.
     -- You can copy-paste them in your toplevel file.
 
-    signal s_serv_system_top_CLK_I : std_logic;
-    signal s_serv_system_top_RST_I : std_logic;
-    signal s_serv_system_top_DAT_I : std_logic_vector((DataBits - 1) downto 0);
-    signal s_serv_system_top_DAT_O : std_logic_vector((DataBits - 1) downto 0);
-    signal s_serv_system_top_ACK_I : std_logic;
-    signal s_serv_system_top_ADDR_O : std_logic_vector((AddrBits - 1) downto 0);
-    signal s_serv_system_top_CYC_O : std_logic;
-    signal s_serv_system_top_SEL_O : std_logic_vector(((DataBits / 8) - 1) downto 0);
-    signal s_serv_system_top_STB_O : std_logic;
-    signal s_serv_system_top_WE_O : std_logic;
+    signal s_serv_wb_top_CLK_I : std_logic;
+    signal s_serv_wb_top_RST_I : std_logic;
+    signal s_serv_wb_top_DAT_I : std_logic_vector((DataBits - 1) downto 0);
+    signal s_serv_wb_top_DAT_O : std_logic_vector((DataBits - 1) downto 0);
+    signal s_serv_wb_top_ACK_I : std_logic;
+    signal s_serv_wb_top_ADDR_O : std_logic_vector((AddrBits - 1) downto 0);
+    signal s_serv_wb_top_CYC_O : std_logic;
+    signal s_serv_wb_top_SEL_O : std_logic_vector(((DataBits / 8) - 1) downto 0);
+    signal s_serv_wb_top_STB_O : std_logic;
+    signal s_serv_wb_top_WE_O : std_logic;
     signal s_spiXipBus_CLK_I : std_logic;
     signal s_spiXipBus_RST_I : std_logic;
     signal s_spiXipBus_DAT_O : std_logic_vector((DataBits - 1) downto 0);
@@ -118,7 +118,7 @@ begin
     -- Probably you have to change it slightly to adapt to your
     -- masters/slaves
 
-    busMaster_serv_system_top : entity work.serv_system_top(rtl)
+    busMaster_serv_wb_top : entity work.serv_wb_top(rtl)
     generic map (
         AddrBits => AddrBits,
         DataBits => DataBits,
@@ -128,16 +128,16 @@ begin
         WITH_CSR => true    
     )
     port map (
-        CLK_I => s_serv_system_top_CLK_I,
-        RST_I => s_serv_system_top_RST_I,
-        DAT_I => s_serv_system_top_DAT_I,
-        DAT_O => s_serv_system_top_DAT_O,
-        ACK_I => s_serv_system_top_ACK_I,
-        ADDR_O => s_serv_system_top_ADDR_O,
-        CYC_O => s_serv_system_top_CYC_O,
-        SEL_O => s_serv_system_top_SEL_O,
-        STB_O => s_serv_system_top_STB_O,
-        WE_O => s_serv_system_top_WE_O,
+        CLK_I => s_serv_wb_top_CLK_I,
+        RST_I => s_serv_wb_top_RST_I,
+        DAT_I => s_serv_wb_top_DAT_I,
+        DAT_O => s_serv_wb_top_DAT_O,
+        ACK_I => s_serv_wb_top_ACK_I,
+        ADDR_O => s_serv_wb_top_ADDR_O,
+        CYC_O => s_serv_wb_top_CYC_O,
+        SEL_O => s_serv_wb_top_SEL_O,
+        STB_O => s_serv_wb_top_STB_O,
+        WE_O => s_serv_wb_top_WE_O,
         
         i_timer_irq => s_total_irq,
         o_ext_rs1 => open,
@@ -176,7 +176,7 @@ begin
 
     busSlave_sramSlave : entity work.sramSlave(platformIndependent)
   generic map (
-    BaseAddress => std_logic_vector(to_unsigned(16#40000000#, AddrBits)),
+    BaseAddress => std_logic_vector'(AddrBits-1 downto 0 => 32X"40000000"),
     AddrBits => AddrBits,
     DataBits => DataBits,
     nrOfEntriesInBytes => 4*1024) -- 4kB
@@ -197,7 +197,7 @@ begin
 
   busSlave_spiBus : entity work.spiBus(platformIndependent)
   generic map (
-    BaseAddress => std_logic_vector(to_unsigned(16#80000000#, AddrBits)),
+    BaseAddress => std_logic_vector'(AddrBits-1 downto 0 => 32X"80000000"),
     AddrBits => AddrBits,
     DataBits => DataBits,
     NrOfCS => 2)
@@ -221,7 +221,7 @@ begin
 
   busSlave_uartBus : entity work.uartBus(platformIndependent)
   generic map (
-    BaseAddress => std_logic_vector(to_unsigned(16#80000100#, AddrBits)),
+    BaseAddress => std_logic_vector'(AddrBits-1 downto 0 => 32X"80000100"),
     AddrBits => AddrBits,
     DataBits => DataBits)
   port map (
@@ -244,7 +244,7 @@ begin
 
   busSlave_picBus : entity work.picBus(platformIndependent)
   generic map (
-    BaseAddress => std_logic_vector(to_unsigned(16#80000200#, AddrBits)),
+    BaseAddress => std_logic_vector'(AddrBits-1 downto 0 => 32X"80000200"),
     AddrBits => AddrBits,
     DataBits => DataBits)
   port map (
@@ -269,20 +269,20 @@ begin
       DataBits => DataBits,
       priorityScheme => priorityScheme
   ) port map (
-    serv_system_top_CLK_I => s_serv_system_top_CLK_I,
-    serv_system_top_RST_I => s_serv_system_top_RST_I,
-    serv_system_top_DAT_I => s_serv_system_top_DAT_I,
-    serv_system_top_DAT_O => s_serv_system_top_DAT_O,
-    serv_system_top_ACK_I => s_serv_system_top_ACK_I,
-    serv_system_top_ADDR_O => s_serv_system_top_ADDR_O,
-    serv_system_top_CYC_O => s_serv_system_top_CYC_O,
-    serv_system_top_ERR_I => open,
-    serv_system_top_LOCK_O => '0',
-    serv_system_top_SEL_O => s_serv_system_top_SEL_O,
-    serv_system_top_STB_O => s_serv_system_top_STB_O,
-    serv_system_top_WE_O => s_serv_system_top_WE_O,
-    serv_system_top_CTI_O => "000", -- Classic cycle
-    serv_system_top_BTE_O => "00",-- Linear burst
+    serv_wb_top_CLK_I => s_serv_wb_top_CLK_I,
+    serv_wb_top_RST_I => s_serv_wb_top_RST_I,
+    serv_wb_top_DAT_I => s_serv_wb_top_DAT_I,
+    serv_wb_top_DAT_O => s_serv_wb_top_DAT_O,
+    serv_wb_top_ACK_I => s_serv_wb_top_ACK_I,
+    serv_wb_top_ADDR_O => s_serv_wb_top_ADDR_O,
+    serv_wb_top_CYC_O => s_serv_wb_top_CYC_O,
+    serv_wb_top_ERR_I => open,
+    serv_wb_top_LOCK_O => '0',
+    serv_wb_top_SEL_O => s_serv_wb_top_SEL_O,
+    serv_wb_top_STB_O => s_serv_wb_top_STB_O,
+    serv_wb_top_WE_O => s_serv_wb_top_WE_O,
+    serv_wb_top_CTI_O => "000", -- Classic cycle
+    serv_wb_top_BTE_O => "00",-- Linear burst
     spiXipBus_CLK_I => s_spiXipBus_CLK_I,
     spiXipBus_RST_I => s_spiXipBus_RST_I,
     spiXipBus_DAT_I => open,
