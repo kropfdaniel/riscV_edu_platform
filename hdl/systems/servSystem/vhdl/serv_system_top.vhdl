@@ -23,7 +23,13 @@ entity system_top is
 
     -- UART
     RxD         : in  std_logic;
-    TxD         : out std_logic
+    TxD         : out std_logic;
+
+    -- LEDS
+    rgbRow      : out std_logic_vector(3 downto 0);
+    nRed        : out std_logic_vector(9 downto 0);
+    nGreen      : out std_logic_vector(9 downto 0);
+    nBlue       : out std_logic_vector(9 downto 0)
   );
 end entity system_top;
 
@@ -103,13 +109,38 @@ architecture rtl of system_top is
     signal s_picBus_STB_I : std_logic;
     signal s_picBus_WE_I : std_logic;
     signal s_picBus_CTI_I : std_logic_vector(2 downto 0);
+    signal s_timer16_CLK_I : std_logic;
+    signal s_timer16_RST_I : std_logic;
+    signal s_timer16_DAT_I : std_logic_vector((DataBits - 1) downto 0);
+    signal s_timer16_DAT_O : std_logic_vector((DataBits - 1) downto 0);
+    signal s_timer16_ACK_O : std_logic;
+    signal s_timer16_ADDR_I : std_logic_vector((AddrBits - 1) downto 0);
+    signal s_timer16_CYC_I : std_logic;
+    signal s_timer16_ERR_O : std_logic;
+    signal s_timer16_SEL_I : std_logic_vector(((DataBits / 8) - 1) downto 0);
+    signal s_timer16_STB_I : std_logic;
+    signal s_timer16_WE_I : std_logic;
+    signal s_timer16_CTI_I : std_logic_vector(2 downto 0);
+    signal s_leds_CLK_I : std_logic;
+    signal s_leds_RST_I : std_logic;
+    signal s_leds_DAT_I : std_logic_vector((DataBits - 1) downto 0);
+    signal s_leds_DAT_O : std_logic_vector((DataBits - 1) downto 0);
+    signal s_leds_ACK_O : std_logic;
+    signal s_leds_ADDR_I : std_logic_vector((AddrBits - 1) downto 0);
+    signal s_leds_CYC_I : std_logic;
+    signal s_leds_ERR_O : std_logic;
+    signal s_leds_SEL_I : std_logic_vector(((DataBits / 8) - 1) downto 0);
+    signal s_leds_STB_I : std_logic;
+    signal s_leds_WE_I : std_logic;
+    signal s_leds_CTI_I : std_logic_vector(2 downto 0);
     signal s_SYSCON_CLK_O : std_logic;
     signal s_SYSCON_RST_O : std_logic;
 
-    signal s_reset : std_logic_vector(3 downto 0);
+    signal s_oneKhzTick : std_logic;
 
-    signal s_uart_irq : std_logic;
-    signal s_total_irq : std_logic;
+    signal s_uart_irq   : std_logic;
+    signal s_timer_irq  : std_logic;
+    signal s_total_irq  : std_logic;
 begin
     s_SYSCON_CLK_O <= clock;
     s_SYSCON_RST_O <= not n_reset;
@@ -259,7 +290,53 @@ begin
     WE_I => s_picBus_WE_I,
     CTI_I => s_picBus_CTI_I,
     uart_irq => s_uart_irq,
+    timer_irq => s_timer_irq,
     total_irq => s_total_irq
+    );
+
+  busSlave_timer16 : entity work.timer16(rtl)
+  generic map (
+    BaseAddress => std_logic_vector'(AddrBits-1 downto 0 => 32X"80000300"),
+    AddrBits => AddrBits,
+    DataBits => DataBits)
+  port map (
+    CLK_I => s_timer16_CLK_I,
+    RST_I => s_timer16_RST_I,
+    DAT_I => s_timer16_DAT_I,
+    DAT_O => s_timer16_DAT_O,
+    ACK_O => s_timer16_ACK_O,
+    ADDR_I => s_timer16_ADDR_I,
+    CYC_I => s_timer16_CYC_I,
+    ERR_O => s_timer16_ERR_O,
+    SEL_I => s_timer16_SEL_I,
+    STB_I => s_timer16_STB_I,
+    WE_I => s_timer16_WE_I,
+    CTI_I => s_timer16_CTI_I,
+    timer_irq => s_timer_irq);
+
+  busSlave_leds : entity work.leds(platformIndependent)
+  generic map (
+    BaseAddress => std_logic_vector'(AddrBits-1 downto 0 => 32X"80000800"),
+    AddrBits => AddrBits,
+    DataBits => DataBits)
+  port map (
+    CLK_I => s_leds_CLK_I,
+    RST_I => s_leds_RST_I,
+    DAT_I => s_leds_DAT_I,
+    DAT_O => s_leds_DAT_O,
+    ACK_O => s_leds_ACK_O,
+    ADDR_I => s_leds_ADDR_I,
+    CYC_I => s_leds_CYC_I,
+    ERR_O => s_leds_ERR_O,
+    SEL_I => s_leds_SEL_I,
+    STB_I => s_leds_STB_I,
+    WE_I => s_leds_WE_I,
+    CTI_I => s_leds_CTI_I,
+    oneKhzTick => s_oneKhzTick,
+    rgbRow => rgbRow,
+    nRed   => nRed,  
+    nGreen => nGreen,
+    nBlue  => nBlue
     );
 
 --Finally here the wishboneBus is mapped
@@ -353,7 +430,42 @@ begin
     picBus_WE_I => s_picBus_WE_I,
     picBus_CTI_I => s_picBus_CTI_I,
     picBus_BTE_I => open,
+    timer16_CLK_I => s_timer16_CLK_I,
+    timer16_RST_I => s_timer16_RST_I,
+    timer16_DAT_I => s_timer16_DAT_I,
+    timer16_DAT_O => s_timer16_DAT_O,
+    timer16_ACK_O => s_timer16_ACK_O,
+    timer16_ADDR_I => s_timer16_ADDR_I,
+    timer16_CYC_I => s_timer16_CYC_I,
+    timer16_ERR_O => s_timer16_ERR_O,
+    timer16_LOCK_I => open,
+    timer16_SEL_I => s_timer16_SEL_I,
+    timer16_STB_I => s_timer16_STB_I,
+    timer16_WE_I => s_timer16_WE_I,
+    timer16_CTI_I => s_timer16_CTI_I,
+    timer16_BTE_I => open,
+    leds_CLK_I => s_leds_CLK_I,
+    leds_RST_I => s_leds_RST_I,
+    leds_DAT_I => s_leds_DAT_I,
+    leds_DAT_O => s_leds_DAT_O,
+    leds_ACK_O => s_leds_ACK_O,
+    leds_ADDR_I => s_leds_ADDR_I,
+    leds_CYC_I => s_leds_CYC_I,
+    leds_ERR_O => s_leds_ERR_O,
+    leds_LOCK_I => open,
+    leds_SEL_I => s_leds_SEL_I,
+    leds_STB_I => s_leds_STB_I,
+    leds_WE_I => s_leds_WE_I,
+    leds_CTI_I => s_leds_CTI_I,
+    leds_BTE_I => open,
     CLK_O => s_SYSCON_CLK_O,
     RST_O => s_SYSCON_RST_O);
+
+  tickGen : entity work.tickGenerator(rtl)
+  port map (
+    clock50MHz => clock,
+    reset      => s_SYSCON_RST_O,
+    oneKhzTick => s_oneKhzTick
+  );
 
 end architecture;

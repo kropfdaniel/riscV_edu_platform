@@ -27,7 +27,8 @@ entity picBus is
         CTI_I    : in  std_logic_vector( 2 downto 0 );
         -- BTE_I is not used in this module
          
-        uart_irq : in  std_logic;
+        uart_irq  : in  std_logic;
+        timer_irq : in  std_logic;
 
         total_irq : out std_logic
     );
@@ -47,9 +48,10 @@ begin
     ACK_O <= s_ackReg;
 
     DAT_O(0)                   <= uart_irq;
-    DAT_O(DataBits-1 downto 1) <= (others => '0');
+    DAT_O(1)                   <= timer_irq;
+    DAT_O(DataBits-1 downto 2) <= (others => '0');
 
-    total_irq <= uart_irq;
+    total_irq <= uart_irq or timer_irq;
 
     -- if the address on the bus is within the address space for this module
     s_isMyTransaction <= (CYC_I and STB_I) when ADDR_I( AddrBits-1 downto 2 ) = BaseAddress( AddrBits-1 downto 2 ) else '0';
