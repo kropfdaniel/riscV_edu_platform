@@ -11,6 +11,7 @@ extern void enable_interrupts(void);
 #define PIC_BASE       0x80000200u
 #define TIMER_BASE     0x80000300u
 #define LEDS_BASE      0x80000800u
+#define UART_IIR       ((volatile uint8_t *)0x80000102u)
 
 /* PIC (Read-Only): bit 0 = uart_irq, bit 1 = timer_irq */
 #define PIC_REG        ((volatile uint32_t *)PIC_BASE)
@@ -96,6 +97,9 @@ void trap_handler(uint32_t mcause) {
 /* Main Program                                                               */
 /* -------------------------------------------------------------------------- */
 int main(void) {
+    (void)*UART_IIR; // Clear UART interrupt
+
+
     /* Ensure LED 11 starts OFF */
     *LED_PIXEL(TEST_LED) = COLOR_OFF;
 

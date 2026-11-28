@@ -31,6 +31,7 @@ SECTIONS
     .data : AT(_etext) {
         _sdata = .;
         *(.data*)
+        *(.sdata*)
         . = ALIGN(4);
         _edata = .;
     } > RAM
@@ -42,6 +43,7 @@ SECTIONS
     .bss : {
         _sbss = .;
         *(.bss*)
+        *(.sbss*)
         *(COMMON)
         . = ALIGN(4);
         _ebss = .;

@@ -5,6 +5,8 @@
 .global _start
 
 _start:
+    csrw mstatus, zero      /* Forces mstatus_mie = '0' (clears 'U' in GHDL) */
+
     /* 1. Set stack pointer (sp) to top of 4 KiB SRAM (0x4000_1000) */
     la   sp, _stack_top
 

@@ -1,0 +1,2 @@
+ghdl edgeDetector.vhdl genClockDiv.vhdl firmware.vhdl flash_programmer.vhdl -e flash_programmer
+synth_ecp5 -json flash_programmer.json
