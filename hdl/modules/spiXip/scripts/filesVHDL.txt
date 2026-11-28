@@ -1,0 +1,4 @@
+vhdl/spiXip_pkg.vhdl
+vhdl/spiXipByteTransceiver.vhdl
+vhdl/spiXipController.vhdl
+vhdl/spiXipBus.vhdl
