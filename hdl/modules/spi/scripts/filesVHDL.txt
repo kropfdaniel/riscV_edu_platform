@@ -1,0 +1,2 @@
+vhdl/spiByteTransceiver.vhdl
+vhdl/spiBus.vhdl
