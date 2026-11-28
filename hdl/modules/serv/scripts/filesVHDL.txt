@@ -1,3 +1,4 @@
+vhdl/serv_pkg.vhdl
 vhdl/serv_aligner.vhdl
 vhdl/serv_alu.vhdl
 vhdl/serv_bufreg.vhdl
